@@ -15,7 +15,44 @@ const routes = [
         path: 'trace',
         name: 'trace',
         component: () => import('@/pages/home/trace/index.vue')
-      }
+      },
+      {
+        path: 'gplot',
+        name: 'gplot',
+        component: () => import('@/pages/home/gplot/index.vue')
+      },
+      {
+        path: 'dashBoard',
+        name: 'dashBoard',
+        component: () => import('@/pages/home/dashBoard/index.vue'),
+        children: [
+          {
+            path: 'APM',
+            name: 'APM',
+            component: () => import('@/pages/home/dashBoard/types/APM.vue')
+          },
+          {
+            path: 'Database',
+            name: 'Database',
+            component: () => import('@/pages/home/dashBoard/types/Database.vue')
+          },
+          {
+            path: 'Istio',
+            name: 'Istio',
+            component: () => import('@/pages/home/dashBoard/types/Istio.vue')
+          },
+          {
+            path: 'K8s',
+            name: 'K8s',
+            component: () => import('@/pages/home/dashBoard/types/K8s.vue')
+          },
+        ]
+      },
+      {
+        path: 'log',
+        name: 'log',
+        component: () => import('@/pages/home/log/index.vue')
+      },
     ]
   }
 

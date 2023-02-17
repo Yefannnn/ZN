@@ -13,6 +13,8 @@ import { createPinia } from 'pinia'
 // 适配方案
 import '@/utils/flexible'
 
+
+
 // 创建app实例
 const app = createApp(App)
 // 图标

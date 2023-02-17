@@ -45,12 +45,11 @@ export default ({ mode }) => {
       port: Number(env.VITE_APP_PORT),
       open: true,
       proxy: {
-        '/api': {
-          target: 'http://developers.douban.com',
+        '/host': {
+          target: 'http://10.28.5.235:8080',
           changeOrigin: true,
-          rewrite: path => path.replace(/^\/api/, '')
+          rewrite: (path) => path.replace(/^\/host/, '')
         }
-
       },
     }
   })
