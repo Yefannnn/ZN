@@ -1,4 +1,44 @@
 <template>
+  <div class="selectBox">
+    <div class="items">
+      <span style="margin-right: 20px; font-size: 16px">服务</span>
+      <el-select
+        v-model="serviceSelectData.selectedValue"
+        class="m-2"
+        placeholder=" "
+        size="small"
+      >
+        <el-option
+          v-for="item in serviceSelectData.selectOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+    </div>
+    <div class="items">
+      <span style="margin-right: 20px; font-size: 16px">服务实例</span>
+      <el-select
+        v-model="instanceSelectData.selectedValue"
+        class="m-2"
+        placeholder=" "
+        size="small"
+      >
+        <el-option
+          v-for="item in instanceSelectData.selectOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+    </div>
+    <div class="items">
+      <span>所属服务：{{ serviceName }}</span>
+    </div>
+    <div class="items">
+      <span>所属节点：{{ nodeName }}</span>
+    </div>
+  </div>
   <!-- 折线图 -->
   <el-card class="box-card" v-for="item in InstanceOriginData" :key="item.id">
     <template #header>
@@ -42,6 +82,47 @@ let props = defineProps({
   },
 });
 
+// 服务选择框
+const serviceSelectData = ref({
+  selectedValue: "",
+  selectOptions: [
+    {
+      label: "111",
+      value: "111",
+    },
+    {
+      label: "222",
+      value: "222",
+    },
+    {
+      label: "333",
+      value: "333",
+    },
+  ],
+});
+// 服务选择框
+const instanceSelectData = ref({
+  selectedValue: "",
+  selectOptions: [
+    {
+      label: "111",
+      value: "111",
+    },
+    {
+      label: "222",
+      value: "222",
+    },
+    {
+      label: "333",
+      value: "333",
+    },
+  ],
+});
+
+// 实例个数
+const serviceName = ref("Service-Previous");
+const nodeName = ref("k8s-master");
+
 // 将数据进行时延排序
 const delaySort = (originData, field, rank) => {
   originData.data.sort((a, b) => {
@@ -82,11 +163,24 @@ let options = {
     grid: {
       top: 10,
       left: "4%",
-      bottom: "10%",
+      bottom: "18%",
     },
     xAxis: {
       type: "time",
       data: afterOriginData.value.averageDelay.xAxis,
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
+      },
     },
     yAxis: {
       type: "value",
@@ -114,11 +208,24 @@ let options = {
     grid: {
       top: 10,
       left: "5%",
-      bottom: "10%",
+      bottom: "18%",
     },
     xAxis: {
       type: "time",
       data: afterOriginData.value.requestSuccess.xAxis,
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
+      },
     },
     yAxis: {
       type: "value",
@@ -146,11 +253,24 @@ let options = {
     grid: {
       top: 10,
       left: "4%",
-      bottom: "10%",
+      bottom: "18%",
     },
     xAxis: {
       type: "time",
       data: afterOriginData.value.servicePayload.xAxis,
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
+      },
     },
     yAxis: {
       type: "value",
@@ -262,5 +382,19 @@ defineExpose({
 .tabBox {
   width: 100%;
   height: 170px;
+}
+
+.selectBox {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  height: 50px;
+  background-color: #fff;
+  padding: 0 15px;
+  .items {
+    margin-right: 30px;
+    font-size: 16px;
+    color: #333840;
+  }
 }
 </style>

@@ -10,19 +10,20 @@
       <template #default="{ node, data }">
         <div class="customNode">
           <div>
-            <!-- border:
-                  globleColor[
-                    lengend.findIndex((item) => item === data.service)
-                  ], -->
-            <span
+            <div
               class="circleClass"
               :style="{
                 border: `1px solid ${searchIndex(data, lengend)}`,
               }"
+            ></div>
+
+            <span
+              style="margin-left: 10px"
+              :style="{ color: node.is_error ? 'red' : '#606266' }"
+              >{{ node.label }}</span
             >
-            </span>
-            <span style="margin-left: 10px">{{ node.label }}</span>
           </div>
+
           <div
             v-if="data.pid === undefined"
             :class="`echart${data.id}`"
@@ -38,13 +39,29 @@
               <p>主机名称：{{ data.service }}</p>
               <p>时延：{{ data.delay }}ms</p>
             </template>
+            <div
+              :class="`echart${data.id}`"
+              style="width: 700px; height: 60px; float: right"
+            ></div>
+          </el-tooltip>
+
+          <!-- <el-tooltip
+            v-else
+            class="box-item"
+            effect="dark"
+            placement="top-start"
+          >
+            <template #content>
+              <p>主机名称：{{ data.service }}</p>
+              <p>时延：{{ data.delay }}ms</p>
+            </template>
             <el-progress
               color="#6e40aa"
               :percentage="computeDelayFun(data.delay)"
               :show-text="false"
             >
             </el-progress>
-          </el-tooltip>
+          </el-tooltip> -->
         </div>
       </template>
     </el-tree>
@@ -78,25 +95,27 @@ const props = defineProps({
 const newDataSource = ref([]);
 
 // 时间轴
-const delayMax = ref(0);
-const delayMin = ref(50);
+const delayMax = ref(50);
+const delayMin = ref(0);
+const startTime = ref("");
 
-const computeDelayFun = (delay) => {
-  return Math.ceil((delay / delayMax.value) * 100);
-};
+// const computeDelayFun = (delay) => {
+//   return Math.ceil((delay / delayMax.value) * 100);
+// };
 
 // 初始化时延坐标轴
 const initDelayTimeLine = () => {
   let targetObj = newDataSource.value.find((i) => i.pid === undefined);
   let Dom = document.querySelector(`.echart${targetObj.id}`);
+  Echarts.dispose(Dom);
   let timeLineChart = Echarts.init(Dom);
   let option = {
-    singleAxis: {
-      name: "ms",
+    xAxis: {
       type: "value",
+      name: "ms",
       left: "10%",
-      bottom: "50%",
-      min: 0,
+      bottom: 30,
+      min: delayMin.value,
       max: delayMax.value,
       minInterval: 5,
       axisTick: {
@@ -105,12 +124,32 @@ const initDelayTimeLine = () => {
       axisLine: {
         show: true,
       },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: "value",
+      max: 0,
+      axisTick: {
+        show: false,
+      },
+      axisLine: {
+        show: false,
+      },
+      axisLabel: {
+        show: false,
+      },
+      splitLine: { show: false },
+    },
+    grid: {
+      bottom: "50%",
+      top: 0,
+      show: false,
     },
     series: [
       {
         type: "scatter",
-        coordinateSystem: "singleAxis",
-        data: [0],
+        coordinateSystem: "cartesian2d",
+        data: [[0, 0]],
         itemStyle: {
           opacity: 0,
         },
@@ -121,7 +160,100 @@ const initDelayTimeLine = () => {
   timeLineChart.setOption(option);
 };
 
+// 初始化所有时间线
+const initTimeLineInstance = () => {
+  // 默认柱状图 配置项
+  let option = {
+    tooltip: {
+      show: true,
+      confine: true,
+      position: ["100%", "50%"],
+      formatter(params) {
+        return "时延时间：" + params.data[0] + "ms";
+      },
+    },
+    xAxis: {
+      type: "value",
+      left: "10%",
+      bottom: 30,
+      min: delayMin.value,
+      max: delayMax.value,
+      minInterval: 5,
+      axisTick: {
+        show: false,
+      },
+      axisLine: {
+        show: false,
+      },
+      splitLine: { show: false },
+      axisLabel: {
+        show: false,
+      },
+    },
+    yAxis: {
+      type: "value",
+      max: 0,
+      axisTick: {
+        show: false,
+      },
+      axisLine: {
+        show: false,
+      },
+      axisLabel: {
+        show: false,
+      },
+      splitLine: { show: false },
+    },
+    grid: {
+      bottom: "50%",
+      top: 0,
+      show: false,
+    },
+    series: [
+      {
+        type: "line",
+        data: [
+          [0, 0],
+          [200, 0],
+        ],
+        lineStyle: {
+          color: "#6e40aa",
+          width: 8,
+        },
+        itemStyle: {
+          color: "#6e40aa",
+          borderColor: "6e40aa",
+          borderWidth: 50,
+          borderCap: "round",
+          opacity: 0,
+        },
+        symbolSize: 10,
+      },
+    ],
+  };
+
+  newDataSource.value.forEach((item) => {
+    if (item.pid === undefined) {
+      return;
+    }
+    // 配置条形图
+    let Dom = document.querySelector(`.echart${item.id}`);
+    Echarts.dispose(Dom);
+    let myChart = Echarts.init(Dom);
+    // 开
+    const startTimePort =
+      +new Date(item.starttimestamp) - +new Date(startTime.value);
+    option.series[0].data = [
+      [startTimePort, 0],
+      [startTimePort + item.delay, 0],
+    ];
+    myChart.setOption(option);
+  });
+};
+
 const createDelayEchart = () => {
+  delayMax.value = props.dataSource[0].children[0].duration;
+  startTime.value = props.dataSource[0].children[0].parent.starttimestamp;
   newDataSource.value = props.dataSource.reduce(function func(
     pre,
     curr,
@@ -131,9 +263,11 @@ const createDelayEchart = () => {
     pre.push({
       id: curr.id,
       label: curr.label,
+      is_error: curr.is_error,
       service: curr.service,
       pid: curr.pid,
       delay: curr.delay,
+      starttimestamp: curr.starttimestamp,
     });
 
     curr.children &&
@@ -147,18 +281,19 @@ const createDelayEchart = () => {
   []);
 
   //   确定delay波动范围
-  let sortArr = [];
-  newDataSource.value.forEach((i) => {
-    if (i.delay && typeof i.delay === "number") {
-      sortArr.push(i.delay);
-    }
-  });
-  sortArr.sort();
-  delayMax.value = sortArr[sortArr.length - 1];
-  delayMin.value = sortArr[0];
+  // let sortArr = [];
+  // newDataSource.value.forEach((i) => {
+  //   if (i.delay && typeof i.delay === "number") {
+  //     sortArr.push(i.delay);
+  //   }
+  // });
+  // sortArr.sort();
+  // delayMax.value = sortArr[sortArr.length - 1];
+  // delayMin.value = sortArr[0];
 
   nextTick(() => {
     initDelayTimeLine();
+    initTimeLineInstance();
   });
 };
 
@@ -169,13 +304,13 @@ const searchIndex = (a, b) => {
   }
 };
 
-onMounted(() => {
-  createDelayEchart();
+defineExpose({
+  createDelayEchart,
 });
 </script>
 <style lang="less" scoped>
 :deep(.el-tree-node__content) {
-  height: 50px;
+  height: 58px;
 }
 
 .customNode {
@@ -224,7 +359,7 @@ onMounted(() => {
   position: absolute;
   width: 15px;
   left: 15px;
-  top: 25px;
+  top: 30px;
   border-top: 1px solid rgb(148, 148, 148);
 }
 

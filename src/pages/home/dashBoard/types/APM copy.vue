@@ -745,7 +745,6 @@ const packageOptionData = () => {
     }
   });
 };
-console.log("NodeAndServiceData", NodeAndServiceData);
 
 let options = {
   //   慢节点排序: {

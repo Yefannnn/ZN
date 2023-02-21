@@ -1,4 +1,25 @@
 <template>
+  <div class="selectBox">
+    <div class="items">
+      <span style="margin-right: 20px; font-size: 16px">服务</span>
+      <el-select
+        v-model="serviceSelectData.selectedValue"
+        class="m-2"
+        placeholder=" "
+        size="small"
+      >
+        <el-option
+          v-for="item in serviceSelectData.selectOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+    </div>
+    <div class="items">
+      <span>服务实例个数：{{ instanceNumber }}</span>
+    </div>
+  </div>
   <!-- 折线图 -->
   <el-card class="box-card" v-for="item in serviceNth3" :key="item.id">
     <template #header>
@@ -38,7 +59,7 @@
   </el-card>
 </template>
 <script setup>
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, nextTick, watch } from "vue";
 import * as Echarts from "echarts";
 let props = defineProps({
   serviceNth3: {
@@ -48,6 +69,28 @@ let props = defineProps({
     type: Array,
   },
 });
+
+// 选择框
+const serviceSelectData = ref({
+  selectedValue: "",
+  selectOptions: [
+    {
+      label: "111",
+      value: "111",
+    },
+    {
+      label: "222",
+      value: "222",
+    },
+    {
+      label: "333",
+      value: "333",
+    },
+  ],
+});
+
+// 实例个数
+const instanceNumber = ref(2);
 
 // 将数据进行时延排序
 const delaySort = (originData, field, rank) => {
@@ -88,12 +131,25 @@ let options = {
     confine: true,
     grid: {
       top: 10,
-      left: "4%",
-      bottom: "10%",
+      left: "8%",
+      bottom: "18%",
     },
     xAxis: {
       type: "time",
       data: afterOriginData.value.averageDelay.xAxis,
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
+      },
     },
     yAxis: {
       type: "value",
@@ -101,7 +157,6 @@ let options = {
     series: [
       {
         type: "line",
-
         data: afterOriginData.value.averageDelay.data,
         itemStyle: {
           opacity: 0,
@@ -120,12 +175,25 @@ let options = {
     confine: true,
     grid: {
       top: 10,
-      left: "5%",
-      bottom: "10%",
+      left: "8%",
+      bottom: "18%",
     },
     xAxis: {
       type: "time",
       data: afterOriginData.value.requestSuccess.xAxis,
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
+      },
     },
     yAxis: {
       type: "value",
@@ -152,12 +220,25 @@ let options = {
     confine: true,
     grid: {
       top: 10,
-      left: "4%",
-      bottom: "10%",
+      left: "8%",
+      bottom: "18%",
     },
     xAxis: {
       type: "time",
       data: afterOriginData.value.servicePayload.xAxis,
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
+      },
     },
     yAxis: {
       type: "value",
@@ -252,18 +333,18 @@ const initEcharsInstance = async () => {
 
 // 整理服务实例数据
 const initServiceSort = () => {
-  props.serviceInstanceSort &&
-    props.serviceInstanceSort.forEach((item) => {
-      // if (item.title === '慢服务实例排序') {
-
-      // }
-      const sortArr =
-        item.data && item.data.length && delaySort(item, "value", "order");
-      sortArr &&
-        sortArr.data.length &&
-        ((item.min = sortArr.data[0].value),
-        (item.max = sortArr.data[sortArr.data.length - 1].value));
-    });
+  watch(props.serviceInstanceSort, (newValue) => {
+    newValue &&
+      newValue.length &&
+      newValue.forEach((item) => {
+        const sortArr =
+          item.data && item.data.length && delaySort(item, "value", "order");
+        sortArr &&
+          sortArr.data.length &&
+          ((item.min = sortArr.data[0].value),
+          (item.max = sortArr.data[sortArr.data.length - 1].value));
+      });
+  });
 };
 
 onMounted(() => {
@@ -299,5 +380,19 @@ defineExpose({
   background-color: #40454e;
   color: #fff;
   border-radius: 4px;
+}
+
+.selectBox {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  height: 50px;
+  background-color: #fff;
+  padding: 0 15px;
+  .items {
+    margin-right: 30px;
+    font-size: 16px;
+    color: #333840;
+  }
 }
 </style>

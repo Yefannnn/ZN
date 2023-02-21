@@ -7,7 +7,11 @@
       <div class="titleBox" v-for="(item, index) in tabData" :key="index">
         <div
           class="titleItem"
-          :style="{ backgroundColor: item.active ? '#333844' : '' }"
+          :style="{
+            backgroundColor: new RegExp(item.name).test(route.path)
+              ? '#333844'
+              : '',
+          }"
           @click="changeActive(item.title, item.name)"
         >
           <img :src="item.imgUrl" alt="" />
@@ -20,9 +24,10 @@
 </template>
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 
 const router = useRouter();
+const route = useRoute();
 
 const tabData = ref([
   {

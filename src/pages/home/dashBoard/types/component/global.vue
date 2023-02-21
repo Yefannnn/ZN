@@ -13,6 +13,7 @@
         <template #content>
           {{ it[nodeAndServiceMap[item.title]] }}
         </template>
+
         <el-progress
           color="#bf99f8"
           :percentage="
@@ -41,7 +42,7 @@
   </el-card>
 </template>
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch, nextTick } from "vue";
 import * as Echarts from "echarts";
 let props = defineProps({
   NodeAndServiceData: {
@@ -78,57 +79,57 @@ const nodeAndServiceMap = {
   高负载服务排序: "servicePayload",
 };
 
+// const computedPer = (type, max) => {
+//   console.log(
+//     "Math.ceil(type / max) * 100",
+//     Math.ceil(type / max) * 100,
+//     type,
+//     max
+//   );
+//   return Math.ceil(type / max) * 100;
+// };
+
 // 数据整理
 const packageNodeSort = ref({
   slow_Data: {
-    // yAxisData: [],
-    //     slowSortData: [],
     min: 0,
     max: 0,
   },
   error_Data: {
-    // yAxisData: [],
-    // errorNodeData: [],
     min: 0,
     max: 0,
   },
   payload_Data: {
-    // yAxisData: [],
-    // payloadNodeData: [],
     min: 0,
     max: 0,
   },
   slowService_Data: {
-    // yAxisData: [],
-    // slowServiceData: [],
     min: 0,
     max: 0,
   },
   errorRate_Data: {
-    // yAxisData: [],
-    // errorRateData: [],
     min: 0,
     max: 0,
   },
   servicePayload_Data: {
-    // yAxisData: [],
-    // hightPayloadData: [],
     min: 0,
     max: 0,
   },
   serviceDistributeDelay_Data: {
     xAxisData: [],
-    yAxisData: [],
+    yAxisData: [50, 100, 150, 200, 250],
     serviceDistributeDelay: [],
   },
   serviceInstanceError_Data: {
     xAxisData: [],
-    yAxisData: [],
+    yAxisData: [20, 40, 60, 80, 100],
+
     serviceInstanceErrorData: [],
   },
   servicePayloadheatMap_Data: {
     xAxisData: [],
-    yAxisData: [],
+    yAxisData: [20, 40, 60, 80, 100],
+
     servicePayloadheatMapData: [],
   },
 });
@@ -139,410 +140,189 @@ const packageOptionData = () => {
     return index > -1 ? index : "";
   };
 
-  //   // 满节点整理
-  //   const sortNodeData = delaySort(
-  //     props.serviceInstanceData.find((item) => item.title === "慢节点排序"),
-  //     "delay",
-  //     "order"
-  //   );
-  //   sortNodeData.data.length &&
-  //     sortNodeData.data.forEach((item) => {
-  //       packageNodeSort.value.slow_Data.yAxisData.push(item.name);
-  //       packageNodeSort.value.slow_Data.slowSortData.push(item.delay);
-  //     });
-
-  //   // 节点错误率整理
-  //   const errorNodeData = delaySort(
-  //     props.serviceInstanceData.find((item) => item.title === "节点错误率排序"),
-  //     "error",
-  //     "order"
-  //   );
-  //   errorNodeData.data.length &&
-  //     errorNodeData.data.forEach((item) => {
-  //       packageNodeSort.value.error_Data.yAxisData.push(item.name);
-  //       packageNodeSort.value.error_Data.errorNodeData.push(item.error);
-  //     });
-
-  //   // 高负载节点整理
-  //   const payloadNodeData = delaySort(
-  //     props.serviceInstanceData.find((item) => item.title === "高负载节点排序"),
-  //     "payload",
-  //     "order"
-  //   );
-  //   payloadNodeData.data.length &&
-  //     payloadNodeData.data.forEach((item) => {
-  //       packageNodeSort.value.payload_Data.yAxisData.push(item.name);
-  //       packageNodeSort.value.payload_Data.payloadNodeData.push(item.payload);
-  //     });
-
-  //   // 慢服务排序
-  //   const slowNodeData = delaySort(
-  //     props.serviceInstanceData.find((item) => item.title === "慢服务排序"),
-  //     "delay",
-  //     "order"
-  //   );
-  //   slowNodeData.data.length &&
-  //     slowNodeData.data.forEach((item) => {
-  //       packageNodeSort.value.slowService_Data.yAxisData.push(item.name);
-  //       packageNodeSort.value.slowService_Data.slowServiceData.push(item.payload);
-  //     });
-
-  //   // 服务错误率整理
-  //   const errorRateData = delaySort(
-  //     props.serviceInstanceData.find((item) => item.title === "服务错误率排序"),
-  //     "errorRate",
-  //     "order"
-  //   );
-  //   errorRateData.data.length &&
-  //     errorRateData.data.forEach((item) => {
-  //       packageNodeSort.value.errorRate_Data.yAxisData.push(item.name);
-  //       packageNodeSort.value.errorRate_Data.errorRateData.push(item.errorRate);
-  //     });
-
-  //   // 高负载服务整理
-  //   const hightPayloadData = delaySort(
-  //     props.serviceInstanceData.find((item) => item.title === "高负载服务排序"),
-  //     "servicePayload",
-  //     "order"
-  //   );
-  //   hightPayloadData.data.length &&
-  //     hightPayloadData.data.forEach((item) => {
-  //       packageNodeSort.value.servicePayload_Data.yAxisData.push(item.name);
-  //       packageNodeSort.value.servicePayload_Data.hightPayloadData.push(
-  //         item.servicePayload
-  //       );
-  //     });
-
-  // 服务实例响应时延分布整理
-  //#region
-  const serviceDistributeDelay = props.serviceInstanceData.find(
-    (item) => item.title === "服务实例响应时延分布热图"
-  );
-  serviceDistributeDelay.data.length &&
-    serviceDistributeDelay.data.forEach((item, index) => {
-      packageNodeSort.value.serviceDistributeDelay_Data.xAxisData.push(
-        item.time
-      );
-      packageNodeSort.value.serviceDistributeDelay_Data.yAxisData.push(
-        item.value
-      );
-    });
-  // sort Y
-  packageNodeSort.value.serviceDistributeDelay_Data.yAxisData.sort(
-    (a, b) => a - b
-  );
-  // data
-
-  serviceDistributeDelay.data.length &&
-    serviceDistributeDelay.data.forEach((item) => {
-      packageNodeSort.value.serviceDistributeDelay_Data.serviceDistributeDelay.push(
-        [
-          findIndexFun(
-            packageNodeSort.value.serviceDistributeDelay_Data.xAxisData,
-            item.time
-          ),
-          findIndexFun(
-            packageNodeSort.value.serviceDistributeDelay_Data.yAxisData,
-            item.value
-          ),
-          item.degree || "-",
-        ]
-      );
-    });
-
-  //#endregion
-
-  //   服务实例错误率分布热图
-  //#region
-  const serviceInstanceError = props.serviceInstanceData.find(
-    (item) => item.title === "服务实例错误率分布热图"
-  );
-  serviceInstanceError.data.length &&
-    serviceInstanceError.data.forEach((item, index) => {
-      packageNodeSort.value.serviceInstanceError_Data.xAxisData.push(item.time);
-      packageNodeSort.value.serviceInstanceError_Data.yAxisData.push(
-        item.value
-      );
-    });
-  // sort Y
-  packageNodeSort.value.serviceInstanceError_Data.yAxisData.sort(
-    (a, b) => a - b
-  );
-  // data
-
-  serviceInstanceError.data.length &&
-    serviceInstanceError.data.forEach((item) => {
-      packageNodeSort.value.serviceInstanceError_Data.serviceInstanceErrorData.push(
-        [
-          findIndexFun(
-            packageNodeSort.value.serviceInstanceError_Data.xAxisData,
-            item.time
-          ),
-          findIndexFun(
-            packageNodeSort.value.serviceInstanceError_Data.yAxisData,
-            item.value
-          ),
-          item.degree || "-",
-        ]
-      );
-    });
-
-  //#endregion
-
-  // 服务实例负载分布热图
-  //#region
-  const servicePayloadheatMap = props.serviceInstanceData.find(
-    (item) => item.title === "服务实例负载分布热图"
-  );
-  servicePayloadheatMap.data.length &&
-    servicePayloadheatMap.data.forEach((item, index) => {
-      packageNodeSort.value.servicePayloadheatMap_Data.xAxisData.push(
-        item.time
-      );
-      packageNodeSort.value.servicePayloadheatMap_Data.yAxisData.push(
-        item.value
-      );
-    });
-  // sort Y
-  packageNodeSort.value.servicePayloadheatMap_Data.yAxisData.sort(
-    (a, b) => a - b
-  );
-  // data
-
-  servicePayloadheatMap.data.length &&
-    servicePayloadheatMap.data.forEach((item) => {
-      packageNodeSort.value.servicePayloadheatMap_Data.servicePayloadheatMapData.push(
-        [
-          findIndexFun(
-            packageNodeSort.value.servicePayloadheatMap_Data.xAxisData,
-            item.time
-          ),
-          findIndexFun(
-            packageNodeSort.value.servicePayloadheatMap_Data.yAxisData,
-            item.value
-          ),
-          item.degree || "-",
-        ]
-      );
-    });
-
-  //#endregion
-
-  // 慢节点整理 111
-  props.NodeAndServiceData.forEach((item) => {
-    // item.data.length &&
-    //   item.title === "慢节点排序" &&
-
-    if (item.title === "慢节点排序" && item.data.length) {
-      const sortNodeData = delaySort(item, "delay", "order");
-      item.min = sortNodeData.data[0].delay;
-      item.max = sortNodeData.data[sortNodeData.data.length - 1].delay;
-    } else if (item.title === "节点错误率排序" && item.data.length) {
-      const sortNodeData = delaySort(item, "error", "order");
-      item.min = sortNodeData.data[0].error;
-      item.max = sortNodeData.data[sortNodeData.data.length - 1].error;
-    } else if (item.title === "高负载节点排序" && item.data.length) {
-      const sortNodeData = delaySort(item, "payload", "order");
-      item.min = sortNodeData.data[0].payload;
-      item.max = sortNodeData.data[sortNodeData.data.length - 1].payload;
-    } else if (item.title === "慢服务排序" && item.data.length) {
-      const sortNodeData = delaySort(item, "payload", "order");
-      item.min = sortNodeData.data[0].payload;
-      item.max = sortNodeData.data[sortNodeData.data.length - 1].payload;
-    } else if (item.title === "服务错误率排序" && item.data.length) {
-      const sortNodeData = delaySort(item, "errorRate", "order");
-      item.min = sortNodeData.data[0].errorRate;
-      item.max = sortNodeData.data[sortNodeData.data.length - 1].errorRate;
-    } else if (item.title === "高负载服务排序" && item.data.length) {
-      const sortNodeData = delaySort(item, "servicePayload", "order");
-      item.min = sortNodeData.data[0].servicePayload;
-      item.max = sortNodeData.data[sortNodeData.data.length - 1].servicePayload;
+  const findIndexWithServiceFun = (originData, item) => {
+    let targetIndex = originData.length - 1;
+    for (let index = 0; index < originData.length; index++) {
+      if (item <= originData[index]) {
+        targetIndex = index;
+        break;
+      }
     }
+    return targetIndex;
+  };
+
+  watch(props.serviceInstanceData, (newValue) => {
+    // 服务实例响应时延分布整理
+    //#region
+    const serviceDistributeDelay = newValue.find(
+      (item) => item.title === "服务实例响应时延分布热图"
+    );
+    serviceDistributeDelay &&
+      serviceDistributeDelay.data.length &&
+      serviceDistributeDelay.data.forEach((item, index) => {
+        packageNodeSort.value.serviceDistributeDelay_Data.xAxisData.push(
+          item.time
+        );
+      });
+
+    // data
+    let reducer1 =
+      serviceDistributeDelay &&
+      serviceDistributeDelay.data.length &&
+      serviceDistributeDelay.data.reduce((pre, curr) => {
+        pre[curr.time] ? (pre[curr.time] += 1) : (pre[curr.time] = 1);
+        return pre;
+      }, {});
+    console.log("reducer1", reducer1);
+
+    serviceDistributeDelay &&
+      serviceDistributeDelay.data.length &&
+      serviceDistributeDelay.data.forEach((item) => {
+        packageNodeSort.value.serviceDistributeDelay_Data.serviceDistributeDelay.push(
+          [
+            findIndexFun(
+              packageNodeSort.value.serviceDistributeDelay_Data.xAxisData,
+              item.time
+            ),
+            findIndexWithServiceFun(
+              packageNodeSort.value.serviceDistributeDelay_Data.yAxisData,
+              item.value
+            ),
+            reducer1[item.time] || "-",
+          ]
+        );
+      });
+    console.log(
+      "packageNodeSort.value.serviceDistributeDelay_Data.serviceDistributeDelay",
+      packageNodeSort.value.serviceDistributeDelay_Data.serviceDistributeDelay
+    );
+
+    //#endregion
+
+    //   服务实例错误率分布热图
+    //#region
+
+    const serviceInstanceError = newValue.find(
+      (item) => item.title === "服务实例错误率分布热图"
+    );
+    serviceInstanceError &&
+      serviceInstanceError.data.length &&
+      serviceInstanceError.data.forEach((item, index) => {
+        packageNodeSort.value.serviceInstanceError_Data.xAxisData.push(
+          item.time
+        );
+      });
+
+    // data
+
+    let reducer2 =
+      serviceInstanceError &&
+      serviceInstanceError.data.length &&
+      serviceInstanceError.data.reduce((pre, curr) => {
+        pre[curr.time] ? (pre[curr.time] += 1) : (pre[curr.time] = 1);
+        return pre;
+      }, {});
+
+    serviceInstanceError &&
+      serviceInstanceError.data.length &&
+      serviceInstanceError.data.forEach((item) => {
+        packageNodeSort.value.serviceInstanceError_Data.serviceInstanceErrorData.push(
+          [
+            findIndexFun(
+              packageNodeSort.value.serviceInstanceError_Data.xAxisData,
+              item.time
+            ),
+            findIndexWithServiceFun(
+              packageNodeSort.value.serviceInstanceError_Data.yAxisData,
+              item.value
+            ),
+            reducer2[item.time] || "-",
+          ]
+        );
+      });
+
+    //#endregion
+
+    // 服务实例负载分布热图
+    //#region
+    const servicePayloadheatMap = newValue.find(
+      (item) => item.title === "服务实例负载分布热图"
+    );
+    servicePayloadheatMap &&
+      servicePayloadheatMap.data.length &&
+      servicePayloadheatMap.data.forEach((item, index) => {
+        packageNodeSort.value.servicePayloadheatMap_Data.xAxisData.push(
+          item.time
+        );
+      });
+
+    // data
+
+    let reducer3 =
+      servicePayloadheatMap &&
+      servicePayloadheatMap.data.length &&
+      servicePayloadheatMap.data.reduce((pre, curr) => {
+        pre[curr.time] ? (pre[curr.time] += 1) : (pre[curr.time] = 1);
+        return pre;
+      }, {});
+    console.log("reducer3", reducer3);
+
+    servicePayloadheatMap &&
+      servicePayloadheatMap.data.length &&
+      servicePayloadheatMap.data.forEach((item) => {
+        packageNodeSort.value.servicePayloadheatMap_Data.servicePayloadheatMapData.push(
+          [
+            findIndexFun(
+              packageNodeSort.value.servicePayloadheatMap_Data.xAxisData,
+              item.time
+            ),
+            findIndexWithServiceFun(
+              packageNodeSort.value.servicePayloadheatMap_Data.yAxisData,
+              item.value
+            ),
+            reducer3[item.time] || "-",
+          ]
+        );
+      });
+
+    //#endregion
+  });
+
+  watch(props.NodeAndServiceData, (newValue) => {
+    newValue.forEach((item) => {
+      // item.data.length &&
+      //   item.title === "慢节点排序" &&
+      if (item.title === "慢节点排序" && item.data.length) {
+        const sortNodeData = delaySort(item, "delay", "order");
+        item.min = sortNodeData.data[0].delay;
+        item.max = sortNodeData.data[sortNodeData.data.length - 1].delay;
+      } else if (item.title === "节点错误率排序" && item.data.length) {
+        const sortNodeData = delaySort(item, "error", "order");
+        item.min = sortNodeData.data[0].error;
+        item.max = sortNodeData.data[sortNodeData.data.length - 1].error;
+      } else if (item.title === "高负载节点排序" && item.data.length) {
+        const sortNodeData = delaySort(item, "payload", "order");
+        item.min = sortNodeData.data[0].payload;
+        item.max = sortNodeData.data[sortNodeData.data.length - 1].payload;
+      } else if (item.title === "慢服务排序" && item.data.length) {
+        const sortNodeData = delaySort(item, "payload", "order");
+        item.min = sortNodeData.data[0].payload;
+        item.max = sortNodeData.data[sortNodeData.data.length - 1].payload;
+      } else if (item.title === "服务错误率排序" && item.data.length) {
+        const sortNodeData = delaySort(item, "errorRate", "order");
+        item.min = sortNodeData.data[0].errorRate;
+        item.max = sortNodeData.data[sortNodeData.data.length - 1].errorRate;
+      } else if (item.title === "高负载服务排序" && item.data.length) {
+        const sortNodeData = delaySort(item, "servicePayload", "order");
+        item.min = sortNodeData.data[0].servicePayload;
+        item.max =
+          sortNodeData.data[sortNodeData.data.length - 1].servicePayload;
+      }
+    });
   });
 };
 
 let options = {
-  //   慢节点排序: {
-  //     tooltip: {
-  //       trigger: "axis",
-  //       axisPointer: {
-  //         type: "shadow",
-  //       },
-  //     },
-  //     grid: {
-  //       top: "1%",
-  //       left: "1%",
-  //       right: "4%",
-  //       bottom: "3%",
-  //       containLabel: true,
-  //     },
-  //     xAxis: {
-  //       type: "value",
-  //       boundaryGap: [0, 0.01],
-  //     },
-  //     yAxis: {
-  //       type: "category",
-  //       data: packageNodeSort.value.slow_Data.yAxisData,
-  //     },
-  //     series: [
-  //       {
-  //         name: "满节点排序",
-  //         type: "bar",
-  //         data: packageNodeSort.value.slow_Data.slowSortData,
-  //       },
-  //     ],
-  //   },
-  //   节点错误率排序: {
-  //     tooltip: {
-  //       trigger: "axis",
-  //       axisPointer: {
-  //         type: "shadow",
-  //       },
-  //     },
-  //     grid: {
-  //       top: "1%",
-  //       left: "1%",
-  //       right: "4%",
-  //       bottom: "3%",
-  //       containLabel: true,
-  //     },
-  //     xAxis: {
-  //       type: "value",
-  //       boundaryGap: [0, 0.01],
-  //     },
-  //     yAxis: {
-  //       type: "category",
-  //       data: packageNodeSort.value.error_Data.yAxisData,
-  //     },
-  //     series: [
-  //       {
-  //         name: "节点错误率",
-  //         type: "bar",
-  //         data: packageNodeSort.value.error_Data.errorNodeData,
-  //       },
-  //     ],
-  //   },
-  //   高负载节点排序: {
-  //     tooltip: {
-  //       trigger: "axis",
-  //       axisPointer: {
-  //         type: "shadow",
-  //       },
-  //     },
-  //     grid: {
-  //       top: "1%",
-  //       left: "1%",
-  //       right: "4%",
-  //       bottom: "3%",
-  //       containLabel: true,
-  //     },
-  //     xAxis: {
-  //       type: "value",
-  //       boundaryGap: [0, 0.01],
-  //     },
-  //     yAxis: {
-  //       type: "category",
-  //       data: packageNodeSort.value.payload_Data.yAxisData,
-  //     },
-  //     series: [
-  //       {
-  //         name: "高负载节点排序",
-  //         type: "bar",
-  //         data: packageNodeSort.value.payload_Data.payloadNodeData,
-  //       },
-  //     ],
-  //   },
-
-  //   慢服务排序: {
-  //     tooltip: {
-  //       trigger: "axis",
-  //       axisPointer: {
-  //         type: "shadow",
-  //       },
-  //     },
-  //     grid: {
-  //       top: "1%",
-  //       left: "1%",
-  //       right: "4%",
-  //       bottom: "3%",
-  //       containLabel: true,
-  //     },
-  //     xAxis: {
-  //       type: "value",
-  //       boundaryGap: [0, 0.01],
-  //     },
-  //     yAxis: {
-  //       type: "category",
-  //       data: packageNodeSort.value.slowService_Data.yAxisData,
-  //     },
-  //     series: [
-  //       {
-  //         name: "慢服务排序",
-  //         type: "bar",
-  //         data: packageNodeSort.value.slowService_Data.slowServiceData,
-  //       },
-  //     ],
-  //   },
-  //   服务错误率排序: {
-  //     tooltip: {
-  //       trigger: "axis",
-  //       axisPointer: {
-  //         type: "shadow",
-  //       },
-  //     },
-  //     grid: {
-  //       top: "1%",
-  //       left: "1%",
-  //       right: "4%",
-  //       bottom: "3%",
-  //       containLabel: true,
-  //     },
-  //     xAxis: {
-  //       type: "value",
-  //       boundaryGap: [0, 0.01],
-  //     },
-  //     yAxis: {
-  //       type: "category",
-  //       data: packageNodeSort.value.errorRate_Data.yAxisData,
-  //     },
-  //     series: [
-  //       {
-  //         name: "慢服务排序",
-  //         type: "bar",
-  //         data: packageNodeSort.value.errorRate_Data.errorRateData,
-  //       },
-  //     ],
-  //   },
-  //   高负载服务排序: {
-  //     tooltip: {
-  //       trigger: "axis",
-  //       axisPointer: {
-  //         type: "shadow",
-  //       },
-  //     },
-  //     grid: {
-  //       top: "1%",
-  //       left: "1%",
-  //       right: "4%",
-  //       bottom: "3%",
-  //       containLabel: true,
-  //     },
-  //     xAxis: {
-  //       type: "value",
-  //       boundaryGap: [0, 0.01],
-  //     },
-  //     yAxis: {
-  //       type: "category",
-  //       data: packageNodeSort.value.servicePayload_Data.yAxisData,
-  //     },
-  //     series: [
-  //       {
-  //         name: "高负载服务",
-  //         type: "bar",
-  //         data: packageNodeSort.value.servicePayload_Data.hightPayloadData,
-  //       },
-  //     ],
-  //   },
   服务实例响应时延分布热图: {
     tooltip: {
       trigger: "axis",
@@ -551,7 +331,7 @@ let options = {
     grid: {
       //   height: "50%",
       top: "1%",
-      bottom: "10%",
+      bottom: "20%",
       left: "8%",
     },
     xAxis: {
@@ -559,6 +339,27 @@ let options = {
       data: packageNodeSort.value.serviceDistributeDelay_Data.xAxisData,
       splitArea: {
         show: true,
+      },
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m =
+            date.getMonth() + 1 < 10
+              ? "0" + (date.getMonth() + 1)
+              : date.getMonth() + 1;
+          let d = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
+          let hh =
+            date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          let ss =
+            date.getMilliseconds() < 10
+              ? "0" + date.getMilliseconds()
+              : date.getMilliseconds();
+          return hh + ":" + mm + ":" + ss + "\n" + m + "-" + d;
+        },
       },
     },
     yAxis: {
@@ -603,7 +404,7 @@ let options = {
     grid: {
       //   height: "50%",
       top: "1%",
-      bottom: "10%",
+      bottom: "20%",
       left: "8%",
     },
     xAxis: {
@@ -611,6 +412,19 @@ let options = {
       data: packageNodeSort.value.serviceInstanceError_Data.xAxisData,
       splitArea: {
         show: true,
+      },
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
       },
     },
     yAxis: {
@@ -655,7 +469,7 @@ let options = {
     grid: {
       //   height: "50%",
       top: "1%",
-      bottom: "10%",
+      bottom: "20%",
       left: "8%",
     },
     xAxis: {
@@ -663,6 +477,19 @@ let options = {
       data: packageNodeSort.value.servicePayloadheatMap_Data.xAxisData,
       splitArea: {
         show: true,
+      },
+      axisLabel: {
+        formatter(params) {
+          let date = new Date(params);
+          let m = date.getMonth() + 1;
+          let d = date.getDate();
+          let hh = date.getHours();
+          let mm =
+            date.getMinutes() < 10
+              ? "0" + date.getMinutes()
+              : date.getMinutes();
+          return hh + ":" + mm + "\n" + m + "-" + d;
+        },
       },
     },
     yAxis: {
@@ -704,11 +531,15 @@ let options = {
 const initNodeEchart = () => {
   // 获取数据并整理
   packageOptionData();
-  props.serviceInstanceData.forEach((item) => {
-    let Dom = document.querySelector(`.echart_${item.id}`);
-    Echarts.dispose(Dom);
-    let myChart = Echarts.init(Dom);
-    myChart.setOption(options[item.title]);
+  watch(props.serviceInstanceData, (newValue) => {
+    newValue.forEach((item) => {
+      nextTick(() => {
+        let Dom = document.querySelector(`.echart_${item.id}`);
+        Echarts.dispose(Dom);
+        let myChart = Echarts.init(Dom);
+        myChart.setOption(options[item.title]);
+      });
+    });
   });
 };
 

@@ -72,7 +72,7 @@
         <ul>
           <li
             class="contaninterItem"
-            v-for="item in serviceListData"
+            v-for="item in serviceListDataSlice"
             :key="item"
             :style="{ backgroundColor: item.active ? '#ededed' : '' }"
             @click="changeActiveLis(item.id)"
@@ -92,19 +92,19 @@
     </div>
     <div class="RightOfTreeBox">
       <div class="TitleBox">
-        <h2>1111</h2>
+        <h2>{{ headerData.title }}</h2>
         <div style="display: flex; margin-top: 5px">
           <div class="startPort">
             <span class="BoxBorder">起始点</span>
-            <span>2023-02-13 11:11:46</span>
+            <span>{{ headerData.orginPot }}</span>
           </div>
           <div class="startPort">
             <span class="BoxBorder">持续时间</span>
-            <span>1</span>
+            <span>{{ headerData.duration }}</span>
           </div>
           <div class="startPort">
             <span class="BoxBorder">跨度</span>
-            <span>1</span>
+            <span>{{ headerData.spanCount }}</span>
           </div>
         </div>
         <!-- 按钮组 -->
@@ -154,6 +154,7 @@
             </div>
           </div>
           <TreeSystem
+            ref="TreeSystemDom"
             :dataSource="dataSource"
             :globleColor="globleColor"
             :lengend="lengend"
@@ -164,7 +165,7 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch, nextTick } from "vue";
 import { nanoid } from "nanoid";
 import TreeSystem from "@/components/TreeSystem.vue";
 import { getLinkListAPI } from "@/api/index";
@@ -179,8 +180,11 @@ const formatTime = (time) => {
   }
   let date = new Date(time);
   let y = date.getFullYear();
-  let m = date.getMonth() + 1;
-  let d = date.getDate();
+  let m =
+    date.getMonth() + 1 < 10
+      ? "0" + (date.getMonth() + 1)
+      : date.getMonth() + 1;
+  let d = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
   let hh = date.getHours();
   let mm = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
   let ss = date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds();
@@ -252,234 +256,261 @@ const resetAllBtn = () => {
   console.log("清空所有筛选项");
 };
 
-// 列表数据
-const serviceListData = ref([
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: true,
+// 调用链数据
+const callChainData = ref([]);
+// 当前选中id
+const currentSelectedId = ref(null);
+// 当前树下Data
+const currentIdTreeData = ref({});
+watch(
+  currentSelectedId,
+  (newId) => {
+    let targetObj = callChainData.value.find((item) => {
+      console.log("item", item.id, "newId", newId);
+      return item.id === newId;
+    });
+    console.log("targetObj1111111", targetObj);
+    targetObj && targetObj.id ? (currentIdTreeData.value = targetObj) : {};
   },
   {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-  {
-    id: nanoid(),
-    name: "Mysql/JDBI/Connection/close",
-    delay: "10ms",
-    date: "2023-2-13 11:31:52",
-    active: false,
-  },
-]);
+    immediate: true,
+  }
+);
 
-const getLinkList = async () => {
-  let data = await getLinkListAPI();
-  console.log("data", data);
-  // 处理数据
+// title数据
+const headerData = ref({
+  title: "xxx",
+  orginPot: "xxxxx",
+  spanCount: "xxxxx",
+  duration: "xxxxx",
+});
+
+// 整理树形结构
+const packageTreeData = (treeObj) => {
+  treeObj.id = treeObj.parent.spanContext.spanid;
+  treeObj.label = treeObj.name;
+  treeObj.service = treeObj.parent.spanContext.servicename;
+  treeObj.delay = treeObj.parent.duration_nano;
+  treeObj.starttimestamp = treeObj.parent.starttimestamp;
+  treeObj.duration = treeObj.responseDuration;
+  treeObj.is_error = treeObj.parent.tags.is_error;
+  if (treeObj.children && treeObj.children.length) {
+    treeObj.children.forEach((item) => {
+      packageTreeData(item);
+    });
+  }
 };
 
+let TreeSystemDom = ref(null);
+
+// 图例
+const lengend = ref([]);
+const globleColor = ["#cd4448", "#6e40aa", "#97ceff"];
+
+watch(currentIdTreeData, (newValue) => {
+  // title数据
+  headerData.value = {
+    title: newValue.name,
+    orginPot: formatTime(newValue.parent.starttimestamp),
+    spanCount: newValue.spanCount,
+    duration: newValue.parent.duration_nano + "ms",
+  };
+  // 整理树形结构
+  packageTreeData(newValue);
+  dataSource.value[0] = {
+    id: nanoid(),
+    label: "调用树",
+    children: [newValue],
+  };
+  nextTick(() => {
+    TreeSystemDom.value.createDelayEchart();
+  });
+
+  dataSource.value
+    .reduce(function func(pre, curr, index, arr) {
+      pre.push({
+        id: curr.id,
+        label: curr.label,
+        service: curr.service,
+        pid: curr.pid,
+        delay: curr.delay,
+      });
+
+      curr.children &&
+        curr.children.length &&
+        curr.children.forEach((v) => {
+          v.pid = curr.id;
+          func(pre, v);
+        });
+      return pre;
+    }, [])
+    .forEach((item) => {
+      if (!lengend.value.includes(item.service) && item.service !== undefined) {
+        lengend.value.push(item.service);
+      }
+    });
+});
+
+// 列表全数据
+const serviceListData = ref([]);
+//  列表分页数据
+const serviceListDataSlice = ref([]);
 // 分页信息
 const pageSource = ref({
   currentPage: 1,
-  pageSize: 10,
-  total: 30,
+  pageSize: 13,
+  total: serviceListData.value.length,
 });
-
 const handleCurrentChange = (e) => {
   pageSource.value.currentPage = e;
+  serviceListDataSlice.value = serviceListData.value.slice(
+    e * pageSource.size + 1,
+    (e + 1) * pageSource.size
+  );
+};
+
+// 处理列表数据
+const packageListData = (ListData) => {
+  ListData.forEach((item, index) => {
+    serviceListData.value.push({
+      id: item.id,
+      name: item.name,
+      delay: item.duration + "ms",
+      date: formatTime(item.parent.tags._time),
+      active: index === 0 ? true : false,
+    });
+    index === 0 ? (currentSelectedId.value = item.id) : null;
+
+    // 分页
+    serviceListDataSlice.value = serviceListData.value.slice(
+      0,
+      pageSource.pageSize
+    );
+  });
+};
+
+const getLinkList = async () => {
+  let data = await getLinkListAPI();
+  data.map((item) => (item.id = item.parent.tags.span_id));
+  callChainData.value = data;
+  // 处理数据
+  packageListData(callChainData.value);
 };
 
 const changeActiveLis = (id) => {
+  currentSelectedId.value = id;
   serviceListData.value.forEach((item) => {
     item.id === id ? (item.active = true) : (item.active = false);
   });
 };
 
 // 树形数据
-const dataSource = ref([
-  {
-    id: nanoid(),
-    label: "根服务器",
-    service: "service0",
-    children: [
-      {
-        id: nanoid(),
-        label: "1",
-        service: "service1",
-        delay: 20,
-        children: [
-          {
-            id: nanoid(),
-            label: "2-1",
-            service: "service1",
-            delay: 20,
-          },
-          {
-            id: nanoid(),
-            label: "1-2",
-            service: "service1",
-            delay: 20,
-            children: [
-              {
-                id: nanoid(),
-                label: "1-1-1",
-                service: "service1",
-                delay: 40,
-              },
-              {
-                id: nanoid(),
-                label: "1-1-2",
-                service: "service1",
-                delay: 35,
-              },
-              {
-                id: nanoid(),
-                label: "1-1-3",
-                service: "service1",
-                delay: 43,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: nanoid(),
-        label: "2",
-        service: "service2",
-        delay: 20,
-        children: [
-          {
-            id: nanoid(),
-            label: "2-1",
-            service: "service2",
-            delay: 22,
-          },
-          {
-            id: nanoid(),
-            label: "2-2",
-            service: "service2",
-            delay: 30,
-            children: [
-              {
-                id: nanoid(),
-                label: "2-1-1",
-                service: "service2",
-                delay: 38,
-              },
-              {
-                id: nanoid(),
-                label: "2-1-2",
-                service: "service2",
-                delay: 35,
-              },
-              {
-                id: nanoid(),
-                label: "2-1-3",
-                service: "service2",
-                delay: 45,
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-]);
+//#region
+// const dataSource = ref([
+//   {
+//     id: nanoid(),
+//     label: "根服务器",
+//     service: "service0",
+//     children: [
+//       {
+//         id: nanoid(),
+//         label: "1",
+//         service: "service1",
+//         delay: 20,
+//         children: [
+//           {
+//             id: nanoid(),
+//             label: "2-1",
+//             service: "service1",
+//             delay: 20,
+//           },
+//           {
+//             id: nanoid(),
+//             label: "1-2",
+//             service: "service1",
+//             delay: 20,
+//             children: [
+//               {
+//                 id: nanoid(),
+//                 label: "1-1-1",
+//                 service: "service1",
+//                 delay: 40,
+//               },
+//               {
+//                 id: nanoid(),
+//                 label: "1-1-2",
+//                 service: "service1",
+//                 delay: 35,
+//               },
+//               {
+//                 id: nanoid(),
+//                 label: "1-1-3",
+//                 service: "service1",
+//                 delay: 43,
+//               },
+//             ],
+//           },
+//         ],
+//       },
+//       {
+//         id: nanoid(),
+//         label: "2",
+//         service: "service2",
+//         delay: 20,
+//         children: [
+//           {
+//             id: nanoid(),
+//             label: "2-1",
+//             service: "service2",
+//             delay: 22,
+//           },
+//           {
+//             id: nanoid(),
+//             label: "2-2",
+//             service: "service2",
+//             delay: 30,
+//             children: [
+//               {
+//                 id: nanoid(),
+//                 label: "2-1-1",
+//                 service: "service2",
+//                 delay: 38,
+//               },
+//               {
+//                 id: nanoid(),
+//                 label: "2-1-2",
+//                 service: "service2",
+//                 delay: 35,
+//               },
+//               {
+//                 id: nanoid(),
+//                 label: "2-1-3",
+//                 service: "service2",
+//                 delay: 45,
+//               },
+//             ],
+//           },
+//         ],
+//       },
+//     ],
+//   },
+// ]);
+
+//#endregion
+
+const dataSource = ref([]);
 
 // 选择tab
 const selectedTab = ref("列表");
 
 const changeTab = (tab) => {
   selectedTab.value = tab;
-};
-
-// 图例
-const lengend = ref([]);
-const globleColor = ["#cd4448", "#6e40aa", "#97ceff"];
-dataSource.value
-  .reduce(function func(pre, curr, index, arr) {
-    pre.push({
-      id: curr.id,
-      label: curr.label,
-      service: curr.service,
-      pid: curr.pid,
-      delay: curr.delay,
+  if (tab === "列表") {
+    nextTick(() => {
+      TreeSystemDom.value.createDelayEchart();
     });
-
-    curr.children &&
-      curr.children.length &&
-      curr.children.forEach((v) => {
-        v.pid = curr.id;
-        func(pre, v);
-      });
-    return pre;
-  }, [])
-  .forEach((item) => {
-    if (!lengend.value.includes(item.service)) {
-      lengend.value.push(item.service);
-    }
-  });
+  }
+};
 
 onMounted(() => {
   getLinkList();
@@ -610,7 +641,7 @@ onMounted(() => {
         .items {
           .delayItem {
             display: inline-block;
-            width: 35px;
+            padding: 0px 5px;
             height: 18px;
             line-height: 18px;
             border-radius: 4px;
@@ -719,3 +750,38 @@ onMounted(() => {
   }
 }
 </style>
+
+<!-- 
+    接口文档
+    1 扁平列表
+    {
+        id: nanoid(),
+        name: "Mysql/JDBI/Connection/close",  name 
+        delay: "10ms",   duration 纳秒
+        date: "2023-2-13 11:31:52",   tags._time
+    }
+
+    2 title数据
+    {
+      起始点：,  starttimestamp
+      持续时间：，   duration_nano
+      跨度：      spanCount
+      title:''  name
+    }
+
+    3 树形
+    {
+      id: nanoid(),
+    label: "根服务器",
+    service: "service0",
+    children: [
+      {
+        id: nanoid(),
+        label: "1",   name 
+        service: "service1",   servicename
+        delay: 20,      duration_nano
+        children: [...]  
+    }
+
+
+ -->
