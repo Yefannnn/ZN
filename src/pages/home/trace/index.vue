@@ -4,12 +4,7 @@
       <span style="marginbottom: 5px">开始时间</span>
       <div class="demo-datetime-picker">
         <div class="block">
-          <el-date-picker
-            format=" "
-            v-model="startTime"
-            type="datetime"
-            :clearable="false"
-          />
+          <el-date-picker format=" " v-model="startTime" type="datetime" :clearable="false" />
         </div>
       </div>
     </div>
@@ -17,71 +12,41 @@
       <span style="marginbottom: 5px">结束时间</span>
       <div class="demo-datetime-picker">
         <div class="block">
-          <el-date-picker
-            format=" "
-            v-model="endTime"
-            type="datetime"
-            :clearable="false"
-          />
+          <el-date-picker format=" " v-model="endTime" type="datetime" :clearable="false" />
         </div>
       </div>
     </div>
-    <div
-      class="selectItem selectItemCenter service"
-      v-for="item in filterArea"
-      :key="item"
-    >
+    <div class="selectItem selectItemCenter service" v-for="item in filterArea" :key="item">
       <span style="marginbottom: 5px">{{ item.title }}</span>
-      <el-select
-        v-model="item.selected"
-        class="m-2"
-        placeholder="Select"
-        size="small"
-        popper-class="selectBox"
-      >
-        <el-option
-          v-for="item in item.options"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
-        />
+      <el-select v-model="item.selected" class="m-2" placeholder="Select" size="small" popper-class="selectBox">
+        <el-option v-for="item in item.options" :key="item.value" :label="item.label" :value="item.value" />
       </el-select>
     </div>
-    <span style="color: #c6c7ca; margin-left: 15px"
-      >时间范围：{{ formatTime(startTime) }} - {{ formatTime(endTime) }}</span
-    >
+    <span style="color: #c6c7ca; margin-left: 15px">时间范围：{{ formatTime(startTime) }} - {{ formatTime(endTime) }}</span>
     <div class="buttonGroup">
       <button class="clearBth" @click="resetAllBtn">清空</button>
     </div>
   </div>
-  <div class="containter">
+  <div class="containter" v-loading="traceLoading">
     <div class="LeftOfListBox">
       <div class="topPapg">
-        <el-pagination
-          v-model:current-page="pageSource.currentPage"
-          :small="small"
-          :disabled="disabled"
-          :page-size="pageSource.pageSize"
-          :total="pageSource.total"
-          background="transparent"
-          layout="prev,jumper, next"
-          @current-change="handleCurrentChange"
-        />
+        <el-pagination v-model:current-page="pageSource.currentPage" :small="small" :disabled="disabled"
+          :page-size="pageSource.pageSize" :total="pageSource.total" background="transparent" layout="prev,jumper, next"
+          @current-change="handleCurrentChange" />
       </div>
       <div class="bottonContaninter">
         <ul>
-          <li
-            class="contaninterItem"
-            v-for="item in serviceListDataSlice"
-            :key="item"
-            :style="{ backgroundColor: item.active ? '#ededed' : '' }"
-            @click="changeActiveLis(item.id)"
-          >
+          <li class="contaninterItem" v-for="item in serviceListDataSlice" :key="item"
+            :style="{ backgroundColor: item.active ? '#ededed' : '' }" @click="changeActiveLis(item.id)">
             <div class="items">
-              <p>{{ item.name }}</p>
+              <p :style="{
+                color: item._error ? 'red' : '#448dfe',
+                fontWeight: item._error ? 700 : 400,
+              }">
+                {{ item.name }}
+              </p>
               <p>
-                <span class="delayItem">{{ item.delay }}</span
-                ><span style="margin-left: 20px; color: #b7aebb">{{
+                <span class="delayItem">{{ item.delay }}</span><span style="margin-left: 20px; color: #b7aebb">{{
                   item.date
                 }}</span>
               </p>
@@ -109,20 +74,14 @@
         </div>
         <!-- 按钮组 -->
         <div class="buttonGroup">
-          <button
-            :style="{
-              backgroundColor: selectedTab === '列表' ? '#448dfe' : '#7f7f7f',
-            }"
-            @click="changeTab('列表')"
-          >
+          <button :style="{
+            backgroundColor: selectedTab === '列表' ? '#448dfe' : '#7f7f7f',
+          }" @click="changeTab('列表')">
             列表
           </button>
-          <button
-            :style="{
-              backgroundColor: selectedTab === '图' ? '#448dfe' : '#7f7f7f',
-            }"
-            @click="changeTab('图')"
-          >
+          <button :style="{
+            backgroundColor: selectedTab === '图' ? '#448dfe' : '#7f7f7f',
+          }" @click="changeTab('图')">
             图
           </button>
         </div>
@@ -130,35 +89,20 @@
       <div class="TreeContainterBox">
         <div class="treeItem" v-if="selectedTab === '列表'">
           <div style="display: flex; margin-bottom: 20px">
-            <div
-              class="serviceType"
-              v-for="(item, index) in lengend"
-              :key="item"
-              :style="{
-                border: `1px solid ${globleColor[index]}`,
-              }"
-            >
-              <span
-                class="serviceIcon"
-                :style="{
-                  border: `2px solid ${globleColor[index]}`,
-                  color: globleColor[index],
-                }"
-              ></span>
-              <span
-                :style="{
-                  color: globleColor[index],
-                }"
-                >{{ item }}</span
-              >
+            <div class="serviceType" v-for="(item, index) in lengend" :key="item" :style="{
+              border: `1px solid ${globleColor[index]}`,
+            }">
+              <span class="serviceIcon" :style="{
+                border: `2px solid ${globleColor[index]}`,
+                color: globleColor[index],
+              }"></span>
+              <span :style="{
+                color: globleColor[index],
+              }">{{ item }}</span>
             </div>
           </div>
-          <TreeSystem
-            ref="TreeSystemDom"
-            :dataSource="dataSource"
-            :globleColor="globleColor"
-            :lengend="lengend"
-          ></TreeSystem>
+          <TreeSystem ref="TreeSystemDom" :dataSource="dataSource" :globleColor="globleColor" :lengend="lengend">
+          </TreeSystem>
         </div>
       </div>
     </div>
@@ -169,6 +113,9 @@ import { ref, onMounted, watch, nextTick } from "vue";
 import { nanoid } from "nanoid";
 import TreeSystem from "@/components/TreeSystem.vue";
 import { getLinkListAPI } from "@/api/index";
+import { ElMessage } from "element-plus";
+
+const traceLoading = ref(false);
 
 const startTime = ref();
 
@@ -294,6 +241,7 @@ const packageTreeData = (treeObj) => {
   treeObj.starttimestamp = treeObj.parent.starttimestamp;
   treeObj.duration = treeObj.responseDuration;
   treeObj.is_error = treeObj.parent.tags.is_error;
+  treeObj.isLog = treeObj.parent.tags.isLog;
   if (treeObj.children && treeObj.children.length) {
     treeObj.children.forEach((item) => {
       packageTreeData(item);
@@ -376,6 +324,7 @@ const packageListData = (ListData) => {
       id: item.id,
       name: item.name,
       delay: item.duration + "ms",
+      _error: item._error,
       date: formatTime(item.parent.tags._time),
       active: index === 0 ? true : false,
     });
@@ -386,15 +335,24 @@ const packageListData = (ListData) => {
       0,
       pageSource.pageSize
     );
+    console.log("serviceListDataSlice", serviceListDataSlice.value);
   });
 };
 
 const getLinkList = async () => {
-  let data = await getLinkListAPI();
-  data.map((item) => (item.id = item.parent.tags.span_id));
-  callChainData.value = data;
-  // 处理数据
-  packageListData(callChainData.value);
+  try {
+    traceLoading.value = true;
+    let data = await getLinkListAPI();
+    traceLoading.value = false;
+    ElMessage.success("加载成功");
+    data.map((item) => (item.id = item.parent.tags.span_id));
+    callChainData.value = data;
+    // 处理数据
+    packageListData(callChainData.value);
+  } catch (error) {
+    ElMessage.error("加载失败，原因是： " + error);
+    traceLoading.value = false;
+  }
 };
 
 const changeActiveLis = (id) => {
@@ -665,6 +623,7 @@ onMounted(() => {
   .RightOfTreeBox {
     flex: 3;
     background-color: #ffffff;
+
     .TitleBox {
       position: relative;
       height: 95px;
@@ -691,6 +650,7 @@ onMounted(() => {
         position: absolute;
         right: 10px;
         bottom: 20px;
+
         button {
           margin: 0 5px;
           padding: 3px 8px;
@@ -706,14 +666,17 @@ onMounted(() => {
         }
       }
     }
+
     .TreeContainterBox {
       padding: 10px;
+
       .treeItem {
         .serviceType {
           padding: 3px 8px;
           border: 1px solid #cdcdcd;
           border-radius: 4px;
           margin: 0 5px;
+
           .serviceIcon {
             display: inline-block;
             width: 11px;

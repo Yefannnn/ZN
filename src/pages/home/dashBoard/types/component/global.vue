@@ -293,29 +293,29 @@ const packageOptionData = () => {
       // item.data.length &&
       //   item.title === "慢节点排序" &&
       if (item.title === "慢节点排序" && item.data.length) {
-        const sortNodeData = delaySort(item, "delay", "order");
-        item.min = sortNodeData.data[0].delay;
-        item.max = sortNodeData.data[sortNodeData.data.length - 1].delay;
+        const sortNodeData = delaySort(item, "delay", "descending");
+        item.max = sortNodeData.data[0].delay;
+        item.min = sortNodeData.data[sortNodeData.data.length - 1].delay;
       } else if (item.title === "节点错误率排序" && item.data.length) {
-        const sortNodeData = delaySort(item, "error", "order");
-        item.min = sortNodeData.data[0].error;
-        item.max = sortNodeData.data[sortNodeData.data.length - 1].error;
+        const sortNodeData = delaySort(item, "error", "descending");
+        item.max = sortNodeData.data[0].error;
+        item.min = sortNodeData.data[sortNodeData.data.length - 1].error;
       } else if (item.title === "高负载节点排序" && item.data.length) {
-        const sortNodeData = delaySort(item, "payload", "order");
-        item.min = sortNodeData.data[0].payload;
-        item.max = sortNodeData.data[sortNodeData.data.length - 1].payload;
+        const sortNodeData = delaySort(item, "payload", "descending");
+        item.max = sortNodeData.data[0].payload;
+        item.min = sortNodeData.data[sortNodeData.data.length - 1].payload;
       } else if (item.title === "慢服务排序" && item.data.length) {
-        const sortNodeData = delaySort(item, "payload", "order");
-        item.min = sortNodeData.data[0].payload;
-        item.max = sortNodeData.data[sortNodeData.data.length - 1].payload;
+        const sortNodeData = delaySort(item, "payload", "descending");
+        item.max = sortNodeData.data[0].payload;
+        item.min = sortNodeData.data[sortNodeData.data.length - 1].payload;
       } else if (item.title === "服务错误率排序" && item.data.length) {
-        const sortNodeData = delaySort(item, "errorRate", "order");
-        item.min = sortNodeData.data[0].errorRate;
-        item.max = sortNodeData.data[sortNodeData.data.length - 1].errorRate;
+        const sortNodeData = delaySort(item, "errorRate", "descending");
+        item.max = sortNodeData.data[0].errorRate;
+        item.min = sortNodeData.data[sortNodeData.data.length - 1].errorRate;
       } else if (item.title === "高负载服务排序" && item.data.length) {
-        const sortNodeData = delaySort(item, "servicePayload", "order");
-        item.min = sortNodeData.data[0].servicePayload;
-        item.max =
+        const sortNodeData = delaySort(item, "servicePayload", "descending");
+        item.max = sortNodeData.data[0].servicePayload;
+        item.min =
           sortNodeData.data[sortNodeData.data.length - 1].servicePayload;
       }
     });

@@ -338,11 +338,13 @@ const initServiceSort = () => {
       newValue.length &&
       newValue.forEach((item) => {
         const sortArr =
-          item.data && item.data.length && delaySort(item, "value", "order");
+          item.data &&
+          item.data.length &&
+          delaySort(item, "value", "descending");
         sortArr &&
           sortArr.data.length &&
-          ((item.min = sortArr.data[0].value),
-          (item.max = sortArr.data[sortArr.data.length - 1].value));
+          ((item.max = sortArr.data[0].value),
+          (item.min = sortArr.data[sortArr.data.length - 1].value));
       });
   });
 };

@@ -1,48 +1,28 @@
 <template>
   <div style="width: 100%">
-    <el-tree
-      :data="dataSource"
-      node-key="id"
-      default-expand-all
-      :expand-on-click-node="true"
-      indent="0"
-    >
+    <el-tree :data="dataSource" node-key="id" default-expand-all :expand-on-click-node="false" indent="0"
+      @node-click="nodeClickFun">
       <template #default="{ node, data }">
         <div class="customNode">
           <div>
-            <div
-              class="circleClass"
-              :style="{
-                border: `1px solid ${searchIndex(data, lengend)}`,
-              }"
-            ></div>
+            <div class="circleClass" :style="{
+              border: `1px solid ${searchIndex(data, lengend)}`,
+            }"></div>
 
-            <span
-              style="margin-left: 10px"
-              :style="{ color: node.is_error ? 'red' : '#606266' }"
-              >{{ node.label }}</span
-            >
+            <span style="margin-left: 10px" :style="{
+              color: data.is_error ? 'red' : '#606266',
+              fontWeight: data.is_error ? 700 : 400,
+            }">{{ node.label }}</span>
           </div>
 
-          <div
-            v-if="data.pid === undefined"
-            :class="`echart${data.id}`"
-            style="width: 700px; height: 45px; float: right"
-          ></div>
-          <el-tooltip
-            v-else
-            class="box-item"
-            effect="dark"
-            placement="top-start"
-          >
+          <div v-if="data.pid === undefined" :class="`echart${data.id}`"
+            style="width: 700px; height: 45px; float: right"></div>
+          <el-tooltip v-else class="box-item" effect="dark" placement="top-start">
             <template #content>
               <p>主机名称：{{ data.service }}</p>
               <p>时延：{{ data.delay }}ms</p>
             </template>
-            <div
-              :class="`echart${data.id}`"
-              style="width: 700px; height: 60px; float: right"
-            ></div>
+            <div :class="`echart${data.id}`" style="width: 700px; height: 60px; float: right"></div>
           </el-tooltip>
 
           <!-- <el-tooltip
@@ -65,6 +45,38 @@
         </div>
       </template>
     </el-tree>
+
+
+    <!-- 抽屉 -->
+    <el-drawer ref="drawerRef" v-model="drawerDialog" title="跨度信息" :before-close="handleClose" direction="ltr"
+      class="demo-drawer">
+      <div class="demo-drawer__content">
+        <div class="containterContent">
+          <h2>节点信息</h2>
+          <div class="NodeContentItem" v-for="(value, key, index) in drawerData.NodeMessage" :key="index">
+            <div class="itemWithKey">{{ key }}</div>
+            <div class="itemWithValue">{{ value }}</div>
+          </div>
+          <h2>服务实例信息</h2>
+          <div class="NodeContentItem" v-for="(value, key, index) in drawerData.serviceInstanceMessage" :key="index">
+            <div class="itemWithKey">{{ key }}</div>
+            <div class="itemWithValue">{{ value }}</div>
+          </div>
+          <div v-if="drawerData.is_log">
+            <h2>日志</h2>
+            <div class="NodeContentItem" v-for="(value, key, index) in drawerData.logMessage" :key="index">
+              <div class="itemWithKey">{{ key }}</div>
+              <div class="itemWithValue">{{ value }}</div>
+            </div>
+          </div>
+
+
+        </div>
+        <div class="demo-drawer__footer">
+
+        </div>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -99,9 +111,44 @@ const delayMax = ref(50);
 const delayMin = ref(0);
 const startTime = ref("");
 
-// const computeDelayFun = (delay) => {
-//   return Math.ceil((delay / delayMax.value) * 100);
-// };
+
+
+// 抽屉show
+const drawerDialog = ref(false)
+
+// 抽屉数据
+const drawerData = ref({
+  NodeMessage: {
+    服务: 'service-edu',
+    服务实例: '0202313202321021223.0@172.18.0.1',
+    端点: '/ccccc/x/xx/x/xxx/dsdf/dfsgfadsg/fftt545656456',
+    跨度类型: 'exit'
+  },
+  serviceInstanceMessage: {
+    组件: 'Feign',
+    Peer: '10.28.5.130:8007',
+    失败: true,
+    'http.method': 'GET',
+    url: 'http://102.28.5.130:8007/hdgf/dfhdfg/dfgetr/cvbdbgfdb4'
+  },
+  logMessage: {
+    time: '2023-01-07 14:24:52',
+    event: 'error',
+    "event.kind": 'java.net.SockTimeoutException',
+    message: 'Read time out',
+    stack: '09:25:28 [vite] hmr update /src/components/TreeSystem.vue?vue&type=style&index=0&scoped=6de9f940&lang.less'
+  },
+  is_log: true
+})
+// node点击
+const nodeClickFun = (nodeData) => {
+  drawerData.value.is_log = nodeData.isLog   // 用来判断是否有日志
+  console.log('nodeData', nodeData.id, nodeData.isLog);
+  drawerDialog.value = true
+  if (nodeData.isLog) {
+    // 发起请求
+  }
+}
 
 // 初始化时延坐标轴
 const initDelayTimeLine = () => {
@@ -278,7 +325,9 @@ const createDelayEchart = () => {
       });
     return pre;
   },
-  []);
+    []);
+
+  console.log("newDataSource", newDataSource);
 
   //   确定delay波动范围
   // let sortArr = [];
@@ -333,6 +382,7 @@ defineExpose({
 
 :deep(.el-tree-node__content) {
   position: relative;
+
   .el-icon {
     opacity: 0;
   }
@@ -382,5 +432,33 @@ defineExpose({
 
 .popoverBox {
   padding: 10px;
+}
+
+.containterContent {
+  .NodeContentItem {
+    display: flex;
+    font-size: 16px;
+    padding: 20px 0px;
+
+    .itemWithKey {
+      flex: 0.6;
+      color: #9da4b2;
+    }
+
+    .itemWithValue {
+      flex: 1;
+      color: #515a64;
+    }
+  }
+}
+
+:deep(.el-drawer) {
+  width: 42% !important;
+
+  .el-drawer__header span {
+    color: #000;
+    font-size: 20px;
+    font-weight: 700;
+  }
 }
 </style>

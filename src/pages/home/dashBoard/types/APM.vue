@@ -1,5 +1,5 @@
 <template>
-  <div class="APMBox">
+  <div class="APMBox" v-loading="tabLoading">
     <el-tabs v-model="activeName" class="demo-tabs" @tab-change="handleClick">
       <el-tab-pane
         v-for="item in paneTabData"
@@ -46,6 +46,9 @@ import {
 import Global from "./component/global.vue";
 import Service from "./component/service.vue";
 import Instance from "./component/Instance.vue";
+import { ElLoading, ElMessage } from "element-plus";
+
+const tabLoading = ref(false);
 
 const activeName = ref("Global");
 
@@ -418,160 +421,61 @@ let serviceInstanceData = ref([]);
 //#endregion
 
 // Service -- 时延 成功率 负载
-let serviceNth3 = ref([
-  {
-    id: nanoid(),
-    title: "平均响应时延",
-    showTitle: "平均响应时延(ms)",
-    data: {
-      xAxis: [
-        "2023-2-10 15:00",
-        "2023-2-10 16:00",
-        "2023-2-10 16:20",
-        "2023-2-10 16:30",
-        "2023-2-10 17:00",
-        "2023-2-10 17:10",
-      ],
-      realityData: [20, 60, 12, 65, 15, 35],
-    },
-  },
-  {
-    id: nanoid(),
-    title: "请求成功率",
-    showTitle: "请求成功率(%)",
+// let serviceNth3 = ref([
+//   {
+//     id: nanoid(),
+//     title: "平均响应时延",
+//     showTitle: "平均响应时延(ms)",
+//     data: {
+//       xAxis: [
+//         "2023-2-10 15:00",
+//         "2023-2-10 16:00",
+//         "2023-2-10 16:20",
+//         "2023-2-10 16:30",
+//         "2023-2-10 17:00",
+//         "2023-2-10 17:10",
+//       ],
+//       realityData: [20, 60, 12, 65, 15, 35],
+//     },
+//   },
+//   {
+//     id: nanoid(),
+//     title: "请求成功率",
+//     showTitle: "请求成功率(%)",
 
-    data: {
-      xAxis: [
-        "2023-2-10 15:00",
-        "2023-2-10 16:00",
-        "2023-2-10 16:20",
-        "2023-2-10 16:30",
-        "2023-2-10 17:00",
-        "2023-2-10 17:10",
-      ],
-      realityData: [89, 91, 97, 95, 87, 89],
-    },
-  },
-  {
-    id: nanoid(),
-    title: "服务负载",
-    showTitle: "服务负载(CPM)",
+//     data: {
+//       xAxis: [
+//         "2023-2-10 15:00",
+//         "2023-2-10 16:00",
+//         "2023-2-10 16:20",
+//         "2023-2-10 16:30",
+//         "2023-2-10 17:00",
+//         "2023-2-10 17:10",
+//       ],
+//       realityData: [89, 91, 97, 95, 87, 89],
+//     },
+//   },
+//   {
+//     id: nanoid(),
+//     title: "服务负载",
+//     showTitle: "服务负载(CPM)",
 
-    data: {
-      xAxis: [
-        "2023-2-10 15:00",
-        "2023-2-10 16:00",
-        "2023-2-10 16:20",
-        "2023-2-10 16:30",
-        "2023-2-10 17:00",
-        "2023-2-10 17:10",
-      ],
-      realityData: [89, 91, 97, 95, 87, 89],
-    },
-  },
-]);
+//     data: {
+//       xAxis: [
+//         "2023-2-10 15:00",
+//         "2023-2-10 16:00",
+//         "2023-2-10 16:20",
+//         "2023-2-10 16:30",
+//         "2023-2-10 17:00",
+//         "2023-2-10 17:10",
+//       ],
+//       realityData: [89, 91, 97, 95, 87, 89],
+//     },
+//   },
+// ]);
+let serviceNth3 = ref([]);
 
 // Service -- 服务实例条形图
-
-let serviceInstanceSort = ref([
-  {
-    id: nanoid(),
-    title: "慢服务实例排序",
-    showTitle: "慢服务实例排序",
-    data: [
-      {
-        id: nanoid(),
-        name: "01",
-        value: 200,
-      },
-      {
-        id: nanoid(),
-        name: "02",
-        value: 158,
-      },
-      {
-        id: nanoid(),
-        name: "03",
-        value: 212,
-      },
-      {
-        id: nanoid(),
-        name: "04",
-        value: 245,
-      },
-      {
-        id: nanoid(),
-        name: "05",
-        value: 203,
-      },
-    ],
-  },
-  {
-    id: nanoid(),
-    title: "服务实例成功率排序",
-    showTitle: "服务实例成功率排序",
-    data: [
-      {
-        id: nanoid(),
-        name: "01",
-        value: 89,
-      },
-      {
-        id: nanoid(),
-        name: "02",
-        value: 92,
-      },
-      {
-        id: nanoid(),
-        name: "03",
-        value: 93,
-      },
-      {
-        id: nanoid(),
-        name: "04",
-        value: 98,
-      },
-      {
-        id: nanoid(),
-        name: "05",
-        value: 99,
-      },
-    ],
-  },
-  {
-    id: nanoid(),
-    title: "服务实例负载排序",
-    showTitle: "服务实例负载排序",
-
-    data: [
-      {
-        id: nanoid(),
-        name: "01",
-        value: 89,
-      },
-      {
-        id: nanoid(),
-        name: "02",
-        value: 92,
-      },
-      {
-        id: nanoid(),
-        name: "03",
-        value: 93,
-      },
-      {
-        id: nanoid(),
-        name: "04",
-        value: 98,
-      },
-      {
-        id: nanoid(),
-        name: "05",
-        value: 99,
-      },
-    ],
-  },
-]);
 
 // let serviceInstanceSort = ref([
 //   {
@@ -672,59 +576,60 @@ let serviceInstanceSort = ref([
 //     ],
 //   },
 // ]);
+let serviceInstanceSort = ref([]);
 
-// Instance -- 折线图
-let InstanceOriginData = ref([
-  {
-    id: nanoid(),
-    title: "平均响应时延",
-    showTitle: "平均响应时延(ms)",
-    data: {
-      xAxis: [
-        "2023-2-10 15:00",
-        "2023-2-10 16:00",
-        "2023-2-10 16:20",
-        "2023-2-10 16:30",
-        "2023-2-10 17:00",
-        "2023-2-10 17:10",
-      ],
-      realityData: [20, 60, 12, 65, 15, 35],
-    },
-  },
-  {
-    id: nanoid(),
-    title: "请求成功率",
-    showTitle: "请求成功率(%)",
+// let InstanceOriginData = ref([
+//   {
+//     id: nanoid(),
+//     title: "平均响应时延",
+//     showTitle: "平均响应时延(ms)",
+//     data: {
+//       xAxis: [
+//         "2023-2-10 15:00",
+//         "2023-2-10 16:00",
+//         "2023-2-10 16:20",
+//         "2023-2-10 16:30",
+//         "2023-2-10 17:00",
+//         "2023-2-10 17:10",
+//       ],
+//       realityData: [20, 60, 12, 65, 15, 35],
+//     },
+//   },
+//   {
+//     id: nanoid(),
+//     title: "请求成功率",
+//     showTitle: "请求成功率(%)",
 
-    data: {
-      xAxis: [
-        "2023-2-10 15:00",
-        "2023-2-10 16:00",
-        "2023-2-10 16:20",
-        "2023-2-10 16:30",
-        "2023-2-10 17:00",
-        "2023-2-10 17:10",
-      ],
-      realityData: [89, 98, 99, 87, 85, 94],
-    },
-  },
-  {
-    id: nanoid(),
-    title: "负载",
-    showTitle: "负载(CPM)",
-    data: {
-      xAxis: [
-        "2023-2-10 15:00",
-        "2023-2-10 16:00",
-        "2023-2-10 16:20",
-        "2023-2-10 16:30",
-        "2023-2-10 17:00",
-        "2023-2-10 17:10",
-      ],
-      realityData: [52, 88, 65, 69, 57, 78],
-    },
-  },
-]);
+//     data: {
+//       xAxis: [
+//         "2023-2-10 15:00",
+//         "2023-2-10 16:00",
+//         "2023-2-10 16:20",
+//         "2023-2-10 16:30",
+//         "2023-2-10 17:00",
+//         "2023-2-10 17:10",
+//       ],
+//       realityData: [89, 98, 99, 87, 85, 94],
+//     },
+//   },
+//   {
+//     id: nanoid(),
+//     title: "负载",
+//     showTitle: "负载(CPM)",
+//     data: {
+//       xAxis: [
+//         "2023-2-10 15:00",
+//         "2023-2-10 16:00",
+//         "2023-2-10 16:20",
+//         "2023-2-10 16:30",
+//         "2023-2-10 17:00",
+//         "2023-2-10 17:10",
+//       ],
+//       realityData: [52, 88, 65, 69, 57, 78],
+//     },
+//   },
+// ]);
+let InstanceOriginData = ref([]);
 
 // Global数据整理方法
 const packageNodeAndServiceOrigin = (type, originData) => {
@@ -1052,6 +957,7 @@ const packageInstanceOrigin = (type, originData) => {
 // 获取数据
 const getGlobalOfServiceAndNodeData = async () => {
   try {
+    tabLoading.value = true;
     // 慢节点/ 服务
 
     let slowNodeAndServiceOriginData = await slowNodeSortAPI();
@@ -1138,7 +1044,11 @@ const getGlobalOfServiceAndNodeData = async () => {
     packageInstanceOrigin("平均响应时延", serviceDelayOriginData);
     packageInstanceOrigin("请求成功率", servicerequestSuccessOriginData);
     packageInstanceOrigin("负载", serviceInstancePayloadOriginData);
+    tabLoading.value = false;
+    ElMessage.success("加载成功");
   } catch (error) {
+    tabLoading.value = false;
+    ElMessage.error("抱歉，加载失败 原因：" + error);
     console.log("Global网络错误", error);
   }
 };
