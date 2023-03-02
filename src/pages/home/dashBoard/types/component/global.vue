@@ -1,6 +1,6 @@
 <template>
   <!-- 节点和服务 -->
-  <el-card class="box-card" v-for="item in NodeAndServiceData" :key="item.id">
+  <el-card class="box-card" v-for="(item, index) in NodeAndServiceData" :key="index">
     <template #header>
       <div class="card-header">
         <span>{{ item.showTitle }}</span>
@@ -11,20 +11,15 @@
       <p class="itemsBgc">{{ it.name }}</p>
       <el-tooltip class="box-item" effect="dark" placement="top">
         <template #content>
-          {{ it[nodeAndServiceMap[item.title]] }}
+          <div>
+            {{ it[nodeAndServiceMap[item.title]] }}
+          </div>
         </template>
 
-        <el-progress
-          color="#bf99f8"
-          :percentage="
-            Math.ceil((it[nodeAndServiceMap[item.title]] / item.max) * 100)
-          "
-        >
-          <img
-            style="margin-left: 20px; cursor: pointer"
-            src="@/assets/images/详情.png"
-            alt=""
-          />
+        <el-progress color="#bf99f8" :percentage="
+          Math.ceil((it[nodeAndServiceMap[item.title]] / item.max) * 100)
+        ">
+          <img style="margin-left: 20px; cursor: pointer" src="@/assets/images/详情.png" alt="" />
         </el-progress>
       </el-tooltip>
     </div>
@@ -44,6 +39,7 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from "vue";
 import * as Echarts from "echarts";
+import { formatterTime } from "@/utils/Funs";
 let props = defineProps({
   NodeAndServiceData: {
     type: Array,
@@ -79,15 +75,6 @@ const nodeAndServiceMap = {
   高负载服务排序: "servicePayload",
 };
 
-// const computedPer = (type, max) => {
-//   console.log(
-//     "Math.ceil(type / max) * 100",
-//     Math.ceil(type / max) * 100,
-//     type,
-//     max
-//   );
-//   return Math.ceil(type / max) * 100;
-// };
 
 // 数据整理
 const packageNodeSort = ref({
@@ -152,10 +139,12 @@ const packageOptionData = () => {
   };
 
   watch(props.serviceInstanceData, (newValue) => {
+    console.log("new", newValue);
+
     // 服务实例响应时延分布整理
     //#region
     const serviceDistributeDelay = newValue.find(
-      (item) => item.title === "服务实例响应时延分布热图"
+      (item) => item?.title === "服务实例响应时延分布热图"
     );
     serviceDistributeDelay &&
       serviceDistributeDelay.data.length &&
@@ -203,8 +192,9 @@ const packageOptionData = () => {
     //#region
 
     const serviceInstanceError = newValue.find(
-      (item) => item.title === "服务实例错误率分布热图"
+      (item) => item?.title === "服务实例错误率分布热图"
     );
+    console.log(" serviceInstanceError.data", serviceInstanceError.data);
     serviceInstanceError &&
       serviceInstanceError.data.length &&
       serviceInstanceError.data.forEach((item, index) => {
@@ -212,6 +202,17 @@ const packageOptionData = () => {
           item.time
         );
       });
+
+    // 错误率为空给默认坐标
+    if (!serviceInstanceError.data.length) {
+      serviceDistributeDelay &&
+        serviceDistributeDelay.data.length &&
+        serviceDistributeDelay.data.forEach((item, index) => {
+          packageNodeSort.value.serviceInstanceError_Data.xAxisData.push(
+            item.time
+          );
+        });
+    }
 
     // data
 
@@ -246,7 +247,7 @@ const packageOptionData = () => {
     // 服务实例负载分布热图
     //#region
     const servicePayloadheatMap = newValue.find(
-      (item) => item.title === "服务实例负载分布热图"
+      (item) => item?.title === "服务实例负载分布热图"
     );
     servicePayloadheatMap &&
       servicePayloadheatMap.data.length &&
@@ -289,6 +290,7 @@ const packageOptionData = () => {
   });
 
   watch(props.NodeAndServiceData, (newValue) => {
+    console.log('newValue', newValue);
     newValue.forEach((item) => {
       // item.data.length &&
       //   item.title === "慢节点排序" &&
@@ -342,23 +344,8 @@ let options = {
       },
       axisLabel: {
         formatter(params) {
-          let date = new Date(params);
-          let m =
-            date.getMonth() + 1 < 10
-              ? "0" + (date.getMonth() + 1)
-              : date.getMonth() + 1;
-          let d = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
-          let hh =
-            date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
-          let mm =
-            date.getMinutes() < 10
-              ? "0" + date.getMinutes()
-              : date.getMinutes();
-          let ss =
-            date.getMilliseconds() < 10
-              ? "0" + date.getMilliseconds()
-              : date.getMilliseconds();
-          return hh + ":" + mm + ":" + ss + "\n" + m + "-" + d;
+          let { y, m, d, hh, mm, ss } = formatterTime(params);
+          return hh + ":" + mm + "\n" + m + "-" + d;
         },
       },
     },
@@ -415,14 +402,7 @@ let options = {
       },
       axisLabel: {
         formatter(params) {
-          let date = new Date(params);
-          let m = date.getMonth() + 1;
-          let d = date.getDate();
-          let hh = date.getHours();
-          let mm =
-            date.getMinutes() < 10
-              ? "0" + date.getMinutes()
-              : date.getMinutes();
+          let { y, m, d, hh, mm, ss } = formatterTime(params);
           return hh + ":" + mm + "\n" + m + "-" + d;
         },
       },
@@ -480,14 +460,7 @@ let options = {
       },
       axisLabel: {
         formatter(params) {
-          let date = new Date(params);
-          let m = date.getMonth() + 1;
-          let d = date.getDate();
-          let hh = date.getHours();
-          let mm =
-            date.getMinutes() < 10
-              ? "0" + date.getMinutes()
-              : date.getMinutes();
+          let { y, m, d, hh, mm, ss } = formatterTime(params);
           return hh + ":" + mm + "\n" + m + "-" + d;
         },
       },
@@ -540,6 +513,7 @@ const initNodeEchart = () => {
         myChart.setOption(options[item.title]);
       });
     });
+    console.log("opt", options);
   });
 };
 
@@ -551,10 +525,12 @@ onMounted(() => {
 .el-card {
   width: 580px;
   margin: 10px 13px;
+
   :deep(.el-card__header) {
     padding: 10px;
     background-color: #f3f4f9;
   }
+
   :deep(.el-card__body) {
     height: 210px;
     overflow: auto;

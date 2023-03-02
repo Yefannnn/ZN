@@ -25,14 +25,17 @@
     <span style="color: #c6c7ca; margin-left: 15px">时间范围：{{ formatTime(startTime) }} - {{ formatTime(endTime) }}</span>
     <div class="buttonGroup">
       <button class="clearBth" @click="resetAllBtn">清空</button>
+      <button class="filterBth" style="margin-left: 10px" @click="filterBtn">
+        筛选
+      </button>
     </div>
   </div>
   <div class="containter" v-loading="traceLoading">
     <div class="LeftOfListBox">
       <div class="topPapg">
         <el-pagination v-model:current-page="pageSource.currentPage" :small="small" :disabled="disabled"
-          :page-size="pageSource.pageSize" :total="pageSource.total" background="transparent" layout="prev,jumper, next"
-          @current-change="handleCurrentChange" />
+          :page-size="pageSource.pageSize" :total="pageSource.total" background="transparent"
+          layout="prev,jumper, next,total" @current-change="handleCurrentChange" />
       </div>
       <div class="bottonContaninter">
         <ul>
@@ -104,6 +107,10 @@
           <TreeSystem ref="TreeSystemDom" :dataSource="dataSource" :globleColor="globleColor" :lengend="lengend">
           </TreeSystem>
         </div>
+        <div class="treeItem" v-else>
+          <!-- <GraphChart /> -->
+          <GraphTree ref="GraphTreeInstance" :graghOrigin="graghOrigin"></GraphTree>
+        </div>
       </div>
     </div>
   </div>
@@ -112,14 +119,17 @@
 import { ref, onMounted, watch, nextTick } from "vue";
 import { nanoid } from "nanoid";
 import TreeSystem from "@/components/TreeSystem.vue";
-import { getLinkListAPI } from "@/api/index";
+import GraphChart from "./component/GraghChart.vue";
+import GraphTree from "./component/GraphTree.vue";
+import { getLinkListAPI, getServiceListAPI } from "@/api/index";
 import { ElMessage } from "element-plus";
+import useTraceStore from '@/store/trace'
+import { storeToRefs } from 'pinia'
+
+const traceStore = useTraceStore()
+const { openTraceData, openTraceAllData } = storeToRefs(traceStore)
 
 const traceLoading = ref(false);
-
-const startTime = ref();
-
-const endTime = ref();
 
 const formatTime = (time) => {
   if (!time) {
@@ -135,72 +145,78 @@ const formatTime = (time) => {
   let hh = date.getHours();
   let mm = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
   let ss = date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds();
-  console.log(y + "-" + m + "-" + d + " " + hh + ":" + mm + ":" + ss);
   return y + "-" + m + "-" + d + " " + hh + ":" + mm + ":" + ss;
 };
+
+const startTime = ref("");
+
+const endTime = ref("");
 
 const filterArea = ref([
   {
     title: "服务",
-    selected: "All",
-    options: [
-      {
-        label: "All",
-        value: "All",
-      },
-      {
-        label: "111",
-        value: "111",
-      },
-    ],
+    selected: "",
+    options: [],
   },
   {
     title: "实例",
-    selected: "All",
-    options: [
-      {
-        label: "All",
-        value: "All",
-      },
-      {
-        label: "111",
-        value: "111",
-      },
-    ],
+    selected: "",
+    options: [],
   },
   {
     title: "状态",
-    selected: "All",
+    selected: "",
     options: [
       {
-        label: "All",
-        value: "All",
+        label: "正常",
+        value: false,
       },
       {
-        label: "111",
-        value: "111",
+        label: "异常",
+        value: true,
       },
     ],
   },
   {
     title: "断点名称",
-    selected: "All",
+    selected: "",
     options: [
-      {
-        label: "All",
-        value: "All",
-      },
       {
         label: "111",
         value: "111",
+      },
+      {
+        label: "222",
+        value: "222",
       },
     ],
   },
 ]);
 
+const getServiceData = async () => {
+  let data = await getServiceListAPI()
+  data.forEach(item => {
+    filterArea.value[0].options.push({
+      label: item,
+      value: item
+    })
+  })
+}
+
 // 清空
 const resetAllBtn = () => {
-  console.log("清空所有筛选项");
+  filterArea.value.forEach((item) => {
+    item.selected = "";
+  });
+  startTime.value = "";
+  endTime.value = "";
+  getLinkList()
+};
+
+// 筛选
+const filterBtn = () => {
+  // 重新获取数据
+  getLinkList();
 };
 
 // 调用链数据
@@ -213,10 +229,8 @@ watch(
   currentSelectedId,
   (newId) => {
     let targetObj = callChainData.value.find((item) => {
-      console.log("item", item.id, "newId", newId);
       return item.id === newId;
     });
-    console.log("targetObj1111111", targetObj);
     targetObj && targetObj.id ? (currentIdTreeData.value = targetObj) : {};
   },
   {
@@ -249,7 +263,11 @@ const packageTreeData = (treeObj) => {
   }
 };
 
+// 选择tab
+const selectedTab = ref("列表");
+
 let TreeSystemDom = ref(null);
+let GraphTreeInstance = ref(null);
 
 // 图例
 const lengend = ref([]);
@@ -265,12 +283,14 @@ watch(currentIdTreeData, (newValue) => {
   };
   // 整理树形结构
   packageTreeData(newValue);
+
   dataSource.value[0] = {
     id: nanoid(),
     label: "调用树",
     children: [newValue],
   };
   nextTick(() => {
+    if (selectedTab.value !== "列表") return;
     TreeSystemDom.value.createDelayEchart();
   });
 
@@ -306,16 +326,61 @@ const serviceListDataSlice = ref([]);
 // 分页信息
 const pageSource = ref({
   currentPage: 1,
-  pageSize: 13,
-  total: serviceListData.value.length,
+  pageSize: 14,
+  total: 0,
 });
 const handleCurrentChange = (e) => {
   pageSource.value.currentPage = e;
   serviceListDataSlice.value = serviceListData.value.slice(
-    e * pageSource.size + 1,
-    (e + 1) * pageSource.size
+    (e - 1) * pageSource.value.pageSize,
+    e * pageSource.value.pageSize
   );
+
 };
+
+// 清空数据
+const clearData = () => {
+  serviceListData.value = []
+  dataSource.value = []
+  headerData.value = {
+    title: "xxx",
+    orginPot: "xxxxx",
+    spanCount: "xxxxx",
+    duration: "xxxxx",
+  }
+  lengend.value = []
+  currentSelectedId.value = ''
+}
+
+// 进一步筛选
+const estimateNeedFilter = (originData) => {
+  console.log('originData111', originData);
+  filterArea.value.forEach(item => {
+    switch (item.title) {
+      case '实例':
+        if (item.selected) {
+          // 筛选
+        }
+        break;
+      case '状态':
+        if (item.selected !== '') {
+          // 筛选
+          originData = originData.filter(it => it.error === item.selected)
+        }
+        break;
+      case '断点名称':
+        if (item.selected) {
+          // 筛选
+        }
+        break;
+
+      default:
+        break;
+    }
+  })
+  return originData
+
+}
 
 // 处理列表数据
 const packageListData = (ListData) => {
@@ -324,29 +389,48 @@ const packageListData = (ListData) => {
       id: item.id,
       name: item.name,
       delay: item.duration + "ms",
-      _error: item._error,
+      _error: item.error,
       date: formatTime(item.parent.tags._time),
       active: index === 0 ? true : false,
     });
     index === 0 ? (currentSelectedId.value = item.id) : null;
-
-    // 分页
-    serviceListDataSlice.value = serviceListData.value.slice(
-      0,
-      pageSource.pageSize
-    );
-    console.log("serviceListDataSlice", serviceListDataSlice.value);
   });
+  // 分页
+  serviceListDataSlice.value = serviceListData.value.slice(
+    0,
+    pageSource.value.pageSize
+  );
+  pageSource.value.total = serviceListData.value.length;
 };
 
 const getLinkList = async () => {
   try {
     traceLoading.value = true;
-    let data = await getLinkListAPI();
+    clearData()  // 清空数据
+    // 携带参数
+    console.log("start_time", startTime.value, "end_time", endTime.value);
+
+    let start_time = startTime.value
+      ? startTime.value.toISOString().replace(/Z/, "+08:00")
+      : "";
+    let end_time = endTime.value
+      ? endTime.value.toISOString().replace(/Z/, "+08:00")
+      : "";
+    let params = {
+      service_name: filterArea.value[0].selected,
+      start_time,
+      end_time,
+      isUpdate: 'false'
+    };
+    let data = await getLinkListAPI(params);
     traceLoading.value = false;
     ElMessage.success("加载成功");
     data.map((item) => (item.id = item.parent.tags.span_id));
-    callChainData.value = data;
+
+    // 判断是否需要进一步筛选
+    let filterData = estimateNeedFilter(data)
+    console.log('filterData', filterData);
+    callChainData.value = filterData;
     // 处理数据
     packageListData(callChainData.value);
   } catch (error) {
@@ -354,6 +438,7 @@ const getLinkList = async () => {
     traceLoading.value = false;
   }
 };
+
 
 const changeActiveLis = (id) => {
   currentSelectedId.value = id;
@@ -363,103 +448,7 @@ const changeActiveLis = (id) => {
 };
 
 // 树形数据
-//#region
-// const dataSource = ref([
-//   {
-//     id: nanoid(),
-//     label: "根服务器",
-//     service: "service0",
-//     children: [
-//       {
-//         id: nanoid(),
-//         label: "1",
-//         service: "service1",
-//         delay: 20,
-//         children: [
-//           {
-//             id: nanoid(),
-//             label: "2-1",
-//             service: "service1",
-//             delay: 20,
-//           },
-//           {
-//             id: nanoid(),
-//             label: "1-2",
-//             service: "service1",
-//             delay: 20,
-//             children: [
-//               {
-//                 id: nanoid(),
-//                 label: "1-1-1",
-//                 service: "service1",
-//                 delay: 40,
-//               },
-//               {
-//                 id: nanoid(),
-//                 label: "1-1-2",
-//                 service: "service1",
-//                 delay: 35,
-//               },
-//               {
-//                 id: nanoid(),
-//                 label: "1-1-3",
-//                 service: "service1",
-//                 delay: 43,
-//               },
-//             ],
-//           },
-//         ],
-//       },
-//       {
-//         id: nanoid(),
-//         label: "2",
-//         service: "service2",
-//         delay: 20,
-//         children: [
-//           {
-//             id: nanoid(),
-//             label: "2-1",
-//             service: "service2",
-//             delay: 22,
-//           },
-//           {
-//             id: nanoid(),
-//             label: "2-2",
-//             service: "service2",
-//             delay: 30,
-//             children: [
-//               {
-//                 id: nanoid(),
-//                 label: "2-1-1",
-//                 service: "service2",
-//                 delay: 38,
-//               },
-//               {
-//                 id: nanoid(),
-//                 label: "2-1-2",
-//                 service: "service2",
-//                 delay: 35,
-//               },
-//               {
-//                 id: nanoid(),
-//                 label: "2-1-3",
-//                 service: "service2",
-//                 delay: 45,
-//               },
-//             ],
-//           },
-//         ],
-//       },
-//     ],
-//   },
-// ]);
-
-//#endregion
-
 const dataSource = ref([]);
-
-// 选择tab
-const selectedTab = ref("列表");
 
 const changeTab = (tab) => {
   selectedTab.value = tab;
@@ -470,13 +459,123 @@ const changeTab = (tab) => {
   }
 };
 
+// 图数据
+let graghOrigin = {
+  id: "Modeling Methods",
+  serviceName: "1",
+  children: [
+    {
+      id: "Classification",
+      serviceName: "2",
+      children: [
+        {
+          id: "Logistic regression",
+          serviceName: "2",
+        },
+        {
+          id: "Linear discriminant analysis",
+          serviceName: "2",
+        },
+        {
+          id: "Rules",
+          serviceName: "2",
+        },
+        {
+          id: "Decision trees",
+          serviceName: "2",
+        },
+        {
+          id: "Naive Bayes",
+          serviceName: "2",
+        },
+        {
+          id: "K nearest neighbor",
+          serviceName: "3",
+        },
+      ],
+    },
+    {
+      id: "Consensus",
+      serviceName: "5",
+      children: [
+        {
+          id: "Models diversity",
+          serviceName: "3",
+
+          children: [
+            {
+              id: "Different initializations",
+              serviceName: "4",
+            },
+            {
+              id: "Different parameter choices",
+              serviceName: "4",
+            },
+            {
+              id: "Different architectures",
+              serviceName: "4",
+            },
+            {
+              id: "Different modeling methods",
+              serviceName: "4",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "Regression",
+      serviceName: "3",
+
+      children: [
+        {
+          id: "Multiple linear regression",
+          serviceName: "5",
+        },
+        {
+          id: "Partial least squares",
+          serviceName: "5",
+        },
+        {
+          id: "Multi-layer feedforward neural network",
+          serviceName: "5",
+        },
+      ],
+    },
+  ],
+};
+
+
+// 监听ws新数据
+watch(openTraceData, (newValue) => {
+  console.log('条件数据', newValue);
+  clearData()
+  newValue.map((item) => (item.id = item.parent.tags.span_id));
+  let filterData = estimateNeedFilter(newValue)
+  callChainData.value = filterData;
+  packageListData(callChainData.value);
+})
+
+watch(openTraceAllData, (newValue) => {
+  console.log('全部数据', newValue);
+  clearData()
+  newValue.map((item) => (item.id = item.parent.tags.span_id));
+  callChainData.value = newValue;
+  packageListData(callChainData.value);
+})
+
+
+
 onMounted(() => {
+  // initWebSocket()
+  // 获取服务列表
+  getServiceData()
   getLinkList();
 });
 </script>
 <style lang="less" scoped>
 :deep(.el-pagination__jump .el-input) {
-  width: 35px;
+  width: 40px;
   height: 25px;
   border: none;
 }
@@ -561,13 +660,20 @@ onMounted(() => {
     }
 
     .clearBth:active {
-      margin-top: 2px;
+      transform: translateY(-10%);
+    }
+
+    .filterBth {
       padding: 3px 10px;
       background-color: #484b55;
       border: none;
       color: #fff;
       border-radius: 4px;
       cursor: pointer;
+    }
+
+    .filterBth:active {
+      transform: translateY(-10%);
     }
   }
 }
@@ -588,6 +694,9 @@ onMounted(() => {
     }
 
     .bottonContaninter {
+      height: 785px;
+      overflow: auto;
+
       .contaninterItem {
         display: flex;
         align-items: center;

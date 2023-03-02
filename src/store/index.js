@@ -2,20 +2,17 @@
  * createPiniaStore
  * 主仓库
  */
-import { defineStore } from 'pinia'
-import potStore from '@/store/pot.js'
-
+import { defineStore, storeToRefs } from 'pinia'
 
 export default defineStore('main', {
-  state () {
+  state() {
     return {
-      potStore: potStore(),
-      mainCount: 1,
+      overAllWithSelected: ''
     }
   },
   actions: {
-    updateCount (value) {
-      this.mainCount += value
+    updateOverAllSelected(payload) {
+      this.overAllWithSelected = payload
     }
   }
 })

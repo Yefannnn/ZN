@@ -15,8 +15,8 @@
             }">{{ node.label }}</span>
           </div>
 
-          <div v-if="data.pid === undefined" :class="`echart${data.id}`"
-            style="width: 700px; height: 45px; float: right"></div>
+          <div v-if="data.pid === undefined" :class="`echart${data.id}`" style="width: 700px; height: 45px; float: right">
+          </div>
           <el-tooltip v-else class="box-item" effect="dark" placement="top-start">
             <template #content>
               <p>主机名称：{{ data.service }}</p>
@@ -26,31 +26,31 @@
           </el-tooltip>
 
           <!-- <el-tooltip
-            v-else
-            class="box-item"
-            effect="dark"
-            placement="top-start"
-          >
-            <template #content>
-              <p>主机名称：{{ data.service }}</p>
-              <p>时延：{{ data.delay }}ms</p>
-            </template>
-            <el-progress
-              color="#6e40aa"
-              :percentage="computeDelayFun(data.delay)"
-              :show-text="false"
-            >
-            </el-progress>
-          </el-tooltip> -->
+                                                                                  v-else
+                                                                                  class="box-item"
+                                                                                  effect="dark"
+                                                                                  placement="top-start"
+                                                                                >
+                                                                                  <template #content>
+                                                                                    <p>主机名称：{{ data.service }}</p>
+                                                                                    <p>时延：{{ data.delay }}ms</p>
+                                                                                  </template>
+                                                                                  <el-progress
+                                                                                    color="#6e40aa"
+                                                                                    :percentage="computeDelayFun(data.delay)"
+                                                                                    :show-text="false"
+                                                                                  >
+                                                                                  </el-progress>
+                                                                                </el-tooltip> -->
         </div>
       </template>
     </el-tree>
 
 
     <!-- 抽屉 -->
-    <el-drawer ref="drawerRef" v-model="drawerDialog" title="跨度信息" :before-close="handleClose" direction="ltr"
-      class="demo-drawer">
-      <div class="demo-drawer__content">
+    <el-drawer ref="drawerRef" v-model="drawerDialog" title="跨度信息" :before-close="handleClose" @closed="drawerClose"
+      direction="ltr" class="demo-drawer">
+      <div class="demo-drawer__content" v-loading="drawerLoading" element-loading-text="数据加载中">
         <div class="containterContent">
           <h2>节点信息</h2>
           <div class="NodeContentItem" v-for="(value, key, index) in drawerData.NodeMessage" :key="index">
@@ -73,7 +73,6 @@
 
         </div>
         <div class="demo-drawer__footer">
-
         </div>
       </div>
     </el-drawer>
@@ -82,6 +81,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from "vue";
+import { getLogOriginAPI } from '@/api/index'
 import useStore from "@/store/index";
 import { nanoid } from "nanoid";
 import * as Echarts from "echarts";
@@ -114,40 +114,123 @@ const startTime = ref("");
 
 
 // 抽屉show
+const drawerLoading = ref(false)
 const drawerDialog = ref(false)
 
 // 抽屉数据
 const drawerData = ref({
-  NodeMessage: {
-    服务: 'service-edu',
-    服务实例: '0202313202321021223.0@172.18.0.1',
-    端点: '/ccccc/x/xx/x/xxx/dsdf/dfsgfadsg/fftt545656456',
-    跨度类型: 'exit'
-  },
-  serviceInstanceMessage: {
-    组件: 'Feign',
-    Peer: '10.28.5.130:8007',
-    失败: true,
-    'http.method': 'GET',
-    url: 'http://102.28.5.130:8007/hdgf/dfhdfg/dfgetr/cvbdbgfdb4'
-  },
-  logMessage: {
-    time: '2023-01-07 14:24:52',
-    event: 'error',
-    "event.kind": 'java.net.SockTimeoutException',
-    message: 'Read time out',
-    stack: '09:25:28 [vite] hmr update /src/components/TreeSystem.vue?vue&type=style&index=0&scoped=6de9f940&lang.less'
-  },
+  // NodeMessage: {
+  //   服务: 'service-edu',
+  //   服务实例: '0202313202321021223.0@172.18.0.1',
+  //   端点: '/ccccc/x/xx/x/xxx/dsdf/dfsgfadsg/fftt545656456',
+  //   跨度类型: 'exit'
+  // },
+  // serviceInstanceMessage: {
+  //   组件: 'Feign',
+  //   Peer: '10.28.5.130:8007',
+  //   失败: true,
+  //   'http.method': 'GET',
+  //   url: 'http://102.28.5.130:8007/hdgf/dfhdfg/dfgetr/cvbdbgfdb4'
+  // },
+  // logMessage: {
+  //   time: '2023-01-07 14:24:52',
+  //   event: 'error',
+  //   "event.kind": 'java.net.SockTimeoutException',
+  //   message: 'Read time out',
+  //   stack: '09:25:28 [vite] hmr update /src/components/TreeSystem.vue?vue&type=style&index=0&scoped=6de9f940&lang.less'
+  // },
   is_log: true
 })
+// 抽屉关闭
+const drawerClose = () => {
+  drawerData.value = {}
+}
+
 // node点击
-const nodeClickFun = (nodeData) => {
+const nodeClickFun = async (nodeData) => {
+  // 点击调用树返回
+  if (nodeData.label === '调用树') return
   drawerData.value.is_log = nodeData.isLog   // 用来判断是否有日志
-  console.log('nodeData', nodeData.id, nodeData.isLog);
   drawerDialog.value = true
-  if (nodeData.isLog) {
-    // 发起请求
+  // 请求
+  drawerLoading.value = true
+  let logOrigin = await getLogOriginAPI({ span_id: nodeData.id })
+  drawerLoading.value = false
+  /* 
+    {
+      "value": null,
+      "time": null,
+      "field": null,
+      "map": null
+    }
+  */
+  console.log('drawerData  Origin', nodeData, logOrigin);
+  let NodeMessage = {
+    服务: nodeData.parent.tags['service.name'],
+    服务实例: nodeData.parent.tags['service.name'],
   }
+  let serviceInstanceMessage = {}
+  let logMessage = {}
+  if (logOrigin.map) {
+    let keyMap = {
+      'http.method': 'http.method',
+      'http.url': 'url',
+      field: 'event',
+      value: 'message',
+      'net.peer.port': 'peer'
+    }
+    for (const key in logOrigin) {
+      switch (key) {
+        case "field":
+          logMessage.message = logOrigin[key]
+          break;
+        case "map":
+          for (const key in logOrigin['map']) {
+            serviceInstanceMessage[keyMap[key]] = logOrigin['map'][key]
+          }
+          break;
+        case "time":
+          logMessage.time = logOrigin[key]
+          break;
+        case "value":
+          logMessage.value = logOrigin[key]
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+
+
+  // 整理所有属性
+  drawerData.value = {
+    // NodeMessage: {
+    //   服务: nodeData.parent.tags['service.name'],
+    //   服务实例: nodeData.parent.tags['service.name'],
+    //   端点: '/ccccc/x/xx/x/xxx/dsdf/dfsgfadsg/fftt545656456',
+    //   跨度类型: 'exit'
+    // },
+    // serviceInstanceMessage: {
+    //   组件: 'Feign',
+    //   Peer: '10.28.5.130:8007',
+    //   失败: nodeData.is_error,
+    //   'http.method': logOrigin?.map['http.method'],
+    //   url: logOrigin?.map['http.url']
+    // },
+    // logMessage: {
+    //   time: '2023-01-07 14:24:52',
+    //   event: 'error',  // field
+    //   message: 'Read time out',  // value
+    // },
+    is_log: nodeData.isLog,
+    NodeMessage,
+    serviceInstanceMessage,
+    logMessage
+  }
+
+  console.log('drawerData.value', drawerData.value);
+
 }
 
 // 初始化时延坐标轴
@@ -441,12 +524,13 @@ defineExpose({
     padding: 20px 0px;
 
     .itemWithKey {
-      flex: 0.6;
+      width: 280px;
       color: #9da4b2;
     }
 
     .itemWithValue {
-      flex: 1;
+      width: 500px;
+      word-break: break-all;
       color: #515a64;
     }
   }
@@ -457,7 +541,7 @@ defineExpose({
 
   .el-drawer__header span {
     color: #000;
-    font-size: 20px;
+    font-size: 25px;
     font-weight: 700;
   }
 }

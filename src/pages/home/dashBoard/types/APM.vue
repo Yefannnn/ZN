@@ -1,39 +1,24 @@
 <template>
-  <div class="APMBox" v-loading="tabLoading">
+  <div class="APMBox" v-loading="tabLoading" element-loading-text="数据加载中...">
     <el-tabs v-model="activeName" class="demo-tabs" @tab-change="handleClick">
-      <el-tab-pane
-        v-for="item in paneTabData"
-        :key="item.name"
-        :label="item.label"
-        :name="item.name"
-      >
+      <el-tab-pane v-for="item in paneTabData" :key="item.name" :label="item.label" :name="item.name">
         <div class="GlobalBox" v-if="item.name === 'Global'">
-          <Global
-            :NodeAndServiceData="NodeAndServiceData"
-            :serviceInstanceData="serviceInstanceData"
-          ></Global>
+          <Global :NodeAndServiceData="NodeAndServiceData" :serviceInstanceData="serviceInstanceData"></Global>
         </div>
         <div class="ServiceBox" v-if="item.name === 'Service'">
-          <Service
-            style="width: 100%"
-            ref="serviceInstance"
-            :serviceNth3="serviceNth3"
-            :serviceInstanceSort="serviceInstanceSort"
-          ></Service>
+          <Service style="width: 100%" ref="serviceInstance" :serviceNth3="serviceNth3"
+            :serviceInstanceSort="serviceInstanceSort" :getServiceOriginData="getServiceOriginData"></Service>
         </div>
         <div class="InstanceBox" v-if="item.name === 'Instance'">
-          <Instance
-            ref="instance"
-            :InstanceOriginData="InstanceOriginData"
-          ></Instance>
+          <Instance ref="instance" :InstanceOriginData="InstanceOriginData"
+            :getInstanceOriginData="getInstanceOriginData"></Instance>
         </div>
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 <script setup>
-import { ref, onMounted, nextTick } from "vue";
-import { nanoid } from "nanoid";
+import { ref, onMounted, nextTick, watch } from "vue";
 import {
   slowNodeSortAPI,
   slowNodeErrorRateSortAPI,
@@ -46,7 +31,13 @@ import {
 import Global from "./component/global.vue";
 import Service from "./component/service.vue";
 import Instance from "./component/Instance.vue";
+import useTraceStore from '@/store/trace'
+import { storeToRefs } from 'pinia'
 import { ElLoading, ElMessage } from "element-plus";
+import { nanoid } from "nanoid";
+
+const traceStore = useTraceStore()
+const { serviceInstanceDuration, serviceInstanceSuccess, serviceLoadCpm, serviceErrorHost, slowService, serviceInstanceSlow, instanceCpmsData } = storeToRefs(traceStore)
 
 const tabLoading = ref(false);
 
@@ -54,14 +45,14 @@ const activeName = ref("Global");
 
 const serviceInstance = ref(null);
 const instance = ref(null);
-const handleClick = (name) => {
+const handleClick = async (name) => {
   if (activeName.value === "Service") {
     nextTick(() => {
-      serviceInstance.value[0].initEcharsInstance();
+      serviceInstance.value[0].getServiceData();
     });
   } else if (activeName.value === "Instance") {
     nextTick(() => {
-      instance.value[0].initEcharsInstance();
+      instance.value[0].getServiceData();
     });
   }
 };
@@ -635,13 +626,13 @@ let InstanceOriginData = ref([]);
 const packageNodeAndServiceOrigin = (type, originData) => {
   switch (type) {
     case "慢节点排序":
-      let useOrigin = originData.map((item) => {
-        return {
+      let useOrigin =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: item.service_name,
           delay: item.duration,
-        };
-      });
+        }));
       let packageObj = {
         id: nanoid(),
         title: type,
@@ -651,13 +642,13 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       NodeAndServiceData.value[0] = packageObj;
       break;
     case "节点错误率排序":
-      let useOrigin1 = originData.map((item) => {
-        return {
+      let useOrigin1 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: item.service_name,
-          error: item.percent * 100,
-        };
-      });
+          error: item.percent,
+        }));
       let packageObj1 = {
         id: nanoid(),
         title: type,
@@ -667,13 +658,13 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       NodeAndServiceData.value[1] = packageObj1;
       break;
     case "高负载节点排序":
-      let useOrigin2 = originData.map((item) => {
-        return {
+      let useOrigin2 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: item.service_name,
           payload: item.load,
-        };
-      });
+        }));
       let packageObj2 = {
         id: nanoid(),
         title: type,
@@ -683,13 +674,13 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       NodeAndServiceData.value[2] = packageObj2;
       break;
     case "慢服务排序":
-      let useOrigin3 = originData.map((item) => {
-        return {
+      let useOrigin3 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: item.service_name,
           payload: item.duration,
-        };
-      });
+        }));
       let packageObj3 = {
         id: nanoid(),
         title: type,
@@ -699,13 +690,13 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       NodeAndServiceData.value[3] = packageObj3;
       break;
     case "服务错误率排序":
-      let useOrigin4 = originData.map((item) => {
-        return {
+      let useOrigin4 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: item.service_name,
-          errorRate: item.percent * 100,
-        };
-      });
+          errorRate: item.percent,
+        }));
       let packageObj4 = {
         id: nanoid(),
         title: type,
@@ -715,13 +706,13 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       NodeAndServiceData.value[4] = packageObj4;
       break;
     case "高负载服务排序":
-      let useOrigin5 = originData.map((item) => {
-        return {
+      let useOrigin5 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: item.service_name,
           servicePayload: item.load,
-        };
-      });
+        }));
       let packageObj5 = {
         id: nanoid(),
         title: type,
@@ -732,14 +723,14 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       break;
 
     case "服务实例响应时延分布热图":
-      let useOrigin8 = originData.map((item) => {
-        return {
+      let useOrigin8 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: nanoid(),
           time: item.time,
           value: item.duration,
-        };
-      });
+        }));
       let packageObj8 = {
         id: nanoid(),
         title: type,
@@ -749,14 +740,14 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       serviceInstanceData.value[0] = packageObj8;
       break;
     case "服务实例错误率分布热图":
-      let useOrigin6 = originData.map((item) => {
-        return {
+      let useOrigin6 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: nanoid(),
-          time: item.start_time,
-          value: item.error_percent,
-        };
-      });
+          time: item.time,
+          value: item.percent,
+        }));
       let packageObj6 = {
         id: nanoid(),
         title: type,
@@ -766,14 +757,14 @@ const packageNodeAndServiceOrigin = (type, originData) => {
       serviceInstanceData.value[1] = packageObj6;
       break;
     case "服务实例负载分布热图":
-      let useOrigin7 = originData.map((item) => {
-        return {
+      let useOrigin7 =
+        originData.length &&
+        originData.map((item) => ({
           id: nanoid(),
           name: item.service_name,
           time: item.time,
           value: item.load,
-        };
-      });
+        }));
       let packageObj7 = {
         id: nanoid(),
         title: type,
@@ -805,6 +796,7 @@ const packageServiceOrigin = (type, originData) => {
         targetObj.data.xAxis.push(item.time);
         targetObj.data.realityData.push(item.duration);
       });
+
       serviceNth3.value[0] = targetObj;
       break;
     case "服务负载":
@@ -834,8 +826,8 @@ const packageServiceOrigin = (type, originData) => {
         },
       };
       originData.forEach((item) => {
-        targetObj2.data.xAxis.push(item.start_time);
-        targetObj2.data.realityData.push(item.error_percent);
+        targetObj2.data.xAxis.push(item.time);
+        targetObj2.data.realityData.push(item.percent);
       });
       serviceNth3.value[1] = targetObj2;
       console.log(targetObj2);
@@ -861,7 +853,7 @@ const packageServiceOrigin = (type, originData) => {
         return {
           id: nanoid(),
           name: item.service_name,
-          value: item.percent * 100,
+          value: item.percent,
         };
       });
       let targetObj4 = {
@@ -941,8 +933,8 @@ const packageInstanceOrigin = (type, originData) => {
         },
       };
       originData.forEach((item) => {
-        targetObj2.data.xAxis.push(item.start_time);
-        targetObj2.data.realityData.push(item.error_percent);
+        targetObj2.data.xAxis.push(item.time);
+        targetObj2.data.realityData.push(item.percent);
       });
       InstanceOriginData.value[1] = targetObj2;
       break;
@@ -952,106 +944,292 @@ const packageInstanceOrigin = (type, originData) => {
   }
 };
 
-//
+// ------
+let slowNodeAndServiceOriginData,
+  slowServiceOriginData,
+  slowNodeErrorRateSortOriginData,
+  slowServiceErrorRateSortOriginData,
+  highPayloadSortOriginData,
+  highPayloadServiceOriginData,
+  serviceInstanceErrorOriginData,
+  serviceInstancePayloadOriginData,
+  serviceDelayOriginData,
+  slowServiceSortOriginData,
+  servicePayloadSortOriginData,
+  ServiceHighPayloadSortOriginData,
+  servicePayloadOriginData,
+  servicePercentDelayOriginData,
+  servicerequestSuccessOriginData,
+  serviceSuccessOriginData,
+  InstancePercentDelayOriginData,
+  InstanceRequestSuccessOriginData,
+  InstancePayloadOriginData
 
-// 获取数据
+// 获取Gloabl数据
 const getGlobalOfServiceAndNodeData = async () => {
   try {
     tabLoading.value = true;
-    // 慢节点/ 服务
+    try {
+      // 慢节点排序排序
+      slowNodeAndServiceOriginData = await slowNodeSortAPI({ type: 'host.name' });
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
+    try {
+      //  慢服务排序
+      slowServiceOriginData = await slowNodeSortAPI({ type: 'service.name' });
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
 
-    let slowNodeAndServiceOriginData = await slowNodeSortAPI();
-
-    // 节点/服务 错误率
-
-    let slowNodeErrorRateSortOriginData = await slowNodeErrorRateSortAPI({
-      type: 0,
-    });
-
-    // 节点/服务  高负载
-
-    let highPayloadSortOriginData = await highPayloadSortAPI();
-
-    // 实例错误率热图
-
-    let serviceInstanceErrorOriginData = await serviceInstanceErrorAPI({
-      name: "server-previous",
-      type: 0,
-    });
-
-    // 实例负载热图
-    let serviceInstancePayloadOriginData = await serviceInstancePayloadAPI(
-      "server-previous"
-    );
-
-    // 服务平均时延
-    let serviceDelayOriginData = await serviceDelayAPI("server-next");
-
-    let servicerequestSuccessOriginData = await serviceInstanceErrorAPI({
-      name: "server-previous",
-      type: 1,
-    });
-
-    // 服务实例成功率排序
-    let serviceSuccessOriginData = await slowNodeErrorRateSortAPI({
-      type: 1,
-    });
-
-    // -------------处理数据---------------------------------------
-    // -----------------global--------------
-    packageNodeAndServiceOrigin("慢节点排序", slowNodeAndServiceOriginData);
-    packageNodeAndServiceOrigin(
-      "节点错误率排序",
-      slowNodeErrorRateSortOriginData
-    );
-    packageNodeAndServiceOrigin("高负载节点排序", highPayloadSortOriginData);
-    packageNodeAndServiceOrigin("慢服务排序", slowNodeAndServiceOriginData);
-    packageNodeAndServiceOrigin(
-      "服务错误率排序",
-      slowNodeErrorRateSortOriginData
-    );
-    packageNodeAndServiceOrigin("高负载服务排序", highPayloadSortOriginData);
-
-    packageNodeAndServiceOrigin(
-      "服务实例响应时延分布热图",
-      serviceDelayOriginData
-    );
-    packageNodeAndServiceOrigin(
-      "服务实例错误率分布热图",
-      serviceInstanceErrorOriginData
-    );
-
-    packageNodeAndServiceOrigin(
-      "服务实例负载分布热图",
-      serviceInstancePayloadOriginData
-    );
-
-    // -----------service-------------
-
-    packageServiceOrigin("平均响应时延", serviceDelayOriginData);
-
-    packageServiceOrigin("服务负载", serviceInstancePayloadOriginData);
-
-    packageServiceOrigin("请求成功率", servicerequestSuccessOriginData);
-
-    packageServiceOrigin("慢服务实例排序", slowNodeAndServiceOriginData);
-
-    packageServiceOrigin("服务实例成功率排序", serviceSuccessOriginData);
-
-    packageServiceOrigin("服务实例负载排序", highPayloadSortOriginData);
-
-    // -----------instance---------------
-    packageInstanceOrigin("平均响应时延", serviceDelayOriginData);
-    packageInstanceOrigin("请求成功率", servicerequestSuccessOriginData);
-    packageInstanceOrigin("负载", serviceInstancePayloadOriginData);
+    try {
+      // 节点错误率排序 
+      slowNodeErrorRateSortOriginData = await slowNodeErrorRateSortAPI({
+        type: 0,
+        serviceType: 'host.name'
+      });
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
+    try {
+      // 服务错误率排序
+      slowServiceErrorRateSortOriginData = await slowNodeErrorRateSortAPI({
+        type: 0,
+        serviceType: 'service.name'
+      });
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
+    try {
+      // 节点高负载排序 
+      highPayloadSortOriginData = await highPayloadSortAPI({ serviceType: 'service.name' });
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
+    try {
+      // 服务高负载排序
+      highPayloadServiceOriginData = await highPayloadSortAPI({ serviceType: 'host.name' });
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
+    try {
+      // 实例错误率热图
+      let opt = {
+        name: 'api_gateway',
+        type: 0,
+      };
+      serviceInstanceErrorOriginData = await serviceInstanceErrorAPI(opt);
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
+    try {
+      // 实例负载热图
+      let opt = {
+        name: 'api_gateway',
+      };
+      serviceInstancePayloadOriginData = await serviceInstancePayloadAPI(opt);
+    } catch (error) {
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+      console.log(error);
+    }
+    try {
+      // 服务时延热图
+      serviceDelayOriginData = await serviceDelayAPI("api_gateway");
+    } catch (error) {
+      console.log(error);
+      ElMessage.error("抱歉，加载失败 原因：" + error);
+    }
     tabLoading.value = false;
-    ElMessage.success("加载成功");
   } catch (error) {
     tabLoading.value = false;
     ElMessage.error("抱歉，加载失败 原因：" + error);
     console.log("Global网络错误", error);
   }
+
+  packageNodeAndServiceOrigin("慢节点排序", slowNodeAndServiceOriginData);
+  packageNodeAndServiceOrigin("慢服务排序", slowServiceOriginData);
+  packageNodeAndServiceOrigin(
+    "节点错误率排序",
+    slowNodeErrorRateSortOriginData
+  );
+  packageNodeAndServiceOrigin(
+    "服务错误率排序",
+    slowServiceErrorRateSortOriginData
+  );
+  packageNodeAndServiceOrigin("高负载节点排序", highPayloadSortOriginData);
+  packageNodeAndServiceOrigin("高负载服务排序", highPayloadServiceOriginData);
+  packageNodeAndServiceOrigin(
+    "服务实例错误率分布热图",
+    serviceInstanceErrorOriginData
+  );
+  packageNodeAndServiceOrigin(
+    "服务实例负载分布热图",
+    serviceInstancePayloadOriginData
+  );
+  packageNodeAndServiceOrigin(
+    "服务实例响应时延分布热图",
+    serviceDelayOriginData
+  );
 };
+
+// serive 原始数据
+const getServiceOriginData = async (serviceData) => {
+  tabLoading.value = true
+  try {
+    // 平均时延
+    servicePercentDelayOriginData = await serviceDelayAPI(serviceData);
+  } catch (error) {
+    console.log(error);
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+  }
+  try {
+    // service 请求成功率
+    let opt = {
+      name: serviceData,
+      type: 1,
+    };
+    servicerequestSuccessOriginData = await serviceInstanceErrorAPI(opt);
+  } catch (error) {
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+    console.log(error);
+  }
+  try {
+    // 服务负载
+    let opt = {
+      name: serviceData,
+    };
+    servicePayloadOriginData = await serviceInstancePayloadAPI(opt);
+  } catch (error) {
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+    console.log(error);
+  }
+
+  try {
+    //  慢服务实例排序
+    slowServiceSortOriginData = await slowNodeSortAPI({ type: 'service.name' });
+  } catch (error) {
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+    console.log(error);
+  }
+
+  try {
+    // 服务实例成功率排序
+    serviceSuccessOriginData = await slowNodeErrorRateSortAPI({
+      type: 1,
+      serviceType: 'service.name'
+    });
+  } catch (error) {
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+    console.log(error);
+  }
+
+  try {
+    // 节点高负载排序 
+    ServiceHighPayloadSortOriginData = await highPayloadSortAPI({ serviceType: 'service.name' });
+  } catch (error) {
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+    console.log(error);
+  }
+
+
+  tabLoading.value = false
+  // -----------service-------------
+  packageServiceOrigin("服务实例成功率排序", serviceSuccessOriginData);
+  packageServiceOrigin("请求成功率", servicerequestSuccessOriginData);
+  packageServiceOrigin("平均响应时延", servicePercentDelayOriginData);
+
+  packageServiceOrigin("服务负载", servicePayloadOriginData);
+
+  packageServiceOrigin("慢服务实例排序", slowServiceSortOriginData);
+
+  packageServiceOrigin("服务实例负载排序", ServiceHighPayloadSortOriginData);
+};
+
+// instance 原始数据
+const getInstanceOriginData = async (serviceData) => {
+  tabLoading.value = true
+  try {
+    // 平均时延
+    InstancePercentDelayOriginData = await serviceDelayAPI(serviceData);
+  } catch (error) {
+    console.log(error);
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+  }
+  try {
+    // 请求成功率
+    let opt = {
+      name: serviceData,
+      type: 1,
+    };
+    InstanceRequestSuccessOriginData = await serviceInstanceErrorAPI(opt);
+  } catch (error) {
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+    console.log(error);
+  }
+  try {
+    // 负载
+    let opt = {
+      name: serviceData,
+    };
+    InstancePayloadOriginData = await serviceInstancePayloadAPI(opt);
+  } catch (error) {
+    ElMessage.error("抱歉，加载失败 原因：" + error);
+    console.log(error);
+  }
+  tabLoading.value = false
+  // -----------instance---------------
+  packageInstanceOrigin("平均响应时延", InstancePercentDelayOriginData);
+  packageInstanceOrigin("请求成功率", InstanceRequestSuccessOriginData);
+  packageInstanceOrigin("负载", InstancePayloadOriginData);
+};
+
+watch(serviceInstanceDuration, newValue => {
+  console.log('更新---服务响应时延热图', newValue);
+  packageNodeAndServiceOrigin(
+    "服务实例响应时延分布热图",
+    newValue
+  );
+})
+watch(serviceInstanceSuccess, newValue => {
+  console.log('更新---实例成功率百分比热图', newValue);
+})
+watch(serviceLoadCpm, newValue => {
+  console.log('更新---服务负载排序-服务', newValue);
+  packageNodeAndServiceOrigin("高负载服务排序", newValue);
+})
+watch(serviceErrorHost, newValue => {
+  console.log('更新---服务error排序-节点', newValue);
+  packageNodeAndServiceOrigin(
+    "节点错误率排序",
+    newValue
+  );
+})
+watch(slowService, newValue => {
+  console.log('更新---慢服务排序-服务', newValue);
+  packageNodeAndServiceOrigin("慢服务排序", newValue);
+
+})
+watch(serviceInstanceSlow, newValue => {
+  console.log('更新---实例错误率百分比热图', newValue);
+  packageNodeAndServiceOrigin(
+    "服务实例错误率分布热图",
+    newValue
+  );
+})
+watch(instanceCpmsData, newValue => {
+  console.log('更新---实例负载分布热图', newValue);
+  packageNodeAndServiceOrigin(
+    "服务实例负载分布热图",
+    newValue
+  );
+})
 
 onMounted(() => {
   getGlobalOfServiceAndNodeData();
@@ -1062,14 +1240,17 @@ onMounted(() => {
   width: 100%;
   height: calc(100% - 48px - 50px);
   background-color: #fff;
+
   .GlobalBox {
     display: flex;
     flex-wrap: wrap;
   }
+
   .ServiceBox {
     display: flex;
     flex-wrap: wrap;
   }
+
   .InstanceBox {
     display: flex;
     flex-wrap: wrap;
@@ -1080,9 +1261,11 @@ onMounted(() => {
   background-color: #f3f4f9;
   padding: 0 20px;
 }
+
 :deep(.el-tabs__content) {
   padding: 0 20px;
 }
+
 :deep(.el-tabs__content .el-card:nth-child(n-3)) {
   margin-top: 0;
 }
@@ -1091,6 +1274,7 @@ onMounted(() => {
   width: 4px;
   background-color: #ffffff;
 }
+
 :deep(::-webkit-scrollbar-thumb) {
   background-color: #c5c6ca;
 }

@@ -54,6 +54,14 @@ const routes = [
         component: () => import('@/pages/home/log/index.vue')
       },
     ]
+  },
+  {
+    path: '/GeoChart',
+    component: () => import('@/pages/geoChart/index.vue')
+  },
+  {
+    path: '/graphChart',
+    component: () => import('@/components/graghChart.vue')
   }
 
 ]

@@ -2,39 +2,21 @@
   <div class="selectBox">
     <div class="items">
       <span style="margin-right: 20px; font-size: 16px">服务</span>
-      <el-select
-        v-model="serviceSelectData.selectedValue"
-        class="m-2"
-        placeholder=" "
-        size="small"
-      >
-        <el-option
-          v-for="item in serviceSelectData.selectOptions"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
-        />
+      <el-select v-model="serviceSelectData.selectedValue" class="m-2" placeholder=" " size="small"
+        @change="serviceSelectDataChange">
+        <el-option v-for="item in serviceSelectData.selectOptions" :key="item.value" :label="item.label"
+          :value="item.value" />
       </el-select>
     </div>
     <div class="items">
       <span style="margin-right: 20px; font-size: 16px">服务实例</span>
-      <el-select
-        v-model="instanceSelectData.selectedValue"
-        class="m-2"
-        placeholder=" "
-        size="small"
-      >
-        <el-option
-          v-for="item in instanceSelectData.selectOptions"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
-        />
+      <el-select v-model="instanceSelectData.selectedValue" class="m-2" placeholder=" " size="small"
+        @change="instanceSelectDataChange">
+        <el-option v-for="item in instanceSelectData.selectOptions" :key="item.value" :label="item.label"
+          :value="item.value" />
       </el-select>
     </div>
-    <div class="items">
-      <span>所属服务：{{ serviceName }}</span>
-    </div>
+
     <div class="items">
       <span>所属节点：{{ nodeName }}</span>
     </div>
@@ -63,10 +45,7 @@
         <template #content>
           {{ it.value }}
         </template>
-        <el-progress
-          color="#bf99f8"
-          :percentage="Math.ceil((it.value / item.max) * 100)"
-        >
+        <el-progress color="#bf99f8" :percentage="Math.ceil((it.value / item.max) * 100)">
           <el-button text>按钮</el-button>
         </el-progress>
       </el-tooltip>
@@ -75,32 +54,26 @@
 </template>
 <script setup>
 import { ref, onMounted, nextTick } from "vue";
+import { getServiceListAPI } from '@/api/index'
 import * as Echarts from "echarts";
+import { formatterTime } from "@/utils/Funs";
 let props = defineProps({
   InstanceOriginData: {
     type: Array,
   },
+  getInstanceOriginData: {
+    type: Function
+  }
 });
 
 // 服务选择框
 const serviceSelectData = ref({
   selectedValue: "",
   selectOptions: [
-    {
-      label: "111",
-      value: "111",
-    },
-    {
-      label: "222",
-      value: "222",
-    },
-    {
-      label: "333",
-      value: "333",
-    },
+
   ],
 });
-// 服务选择框
+// 实例选择框
 const instanceSelectData = ref({
   selectedValue: "",
   selectOptions: [
@@ -119,9 +92,34 @@ const instanceSelectData = ref({
   ],
 });
 
-// 实例个数
-const serviceName = ref("Service-Previous");
+// 所属节点
 const nodeName = ref("k8s-master");
+
+// 获取服务
+const getServiceData = async () => {
+  let data = await getServiceListAPI()
+  data && data.length && data.forEach(item => {
+    serviceSelectData.value.selectOptions.push({
+      label: item,
+      value: item
+    })
+  })
+  serviceSelectData.value.selectedValue = data && data.length && data[0]
+  serviceSelectDataChange(serviceSelectData.value.selectedValue)
+}
+
+// 服务类事件
+const serviceSelectDataChange = async (e) => {
+  console.log('选择的服务是', e);
+  await props.getInstanceOriginData(e)
+  nextTick(() => {
+    initEcharsInstance()
+  })
+}
+const instanceSelectDataChange = (e) => {
+  console.log('服务下的实例是', e);
+}
+
 
 // 将数据进行时延排序
 const delaySort = (originData, field, rank) => {
@@ -170,14 +168,7 @@ let options = {
       data: afterOriginData.value.averageDelay.xAxis,
       axisLabel: {
         formatter(params) {
-          let date = new Date(params);
-          let m = date.getMonth() + 1;
-          let d = date.getDate();
-          let hh = date.getHours();
-          let mm =
-            date.getMinutes() < 10
-              ? "0" + date.getMinutes()
-              : date.getMinutes();
+          let { y, m, d, hh, mm, ss } = formatterTime(params);
           return hh + ":" + mm + "\n" + m + "-" + d;
         },
       },
@@ -215,14 +206,7 @@ let options = {
       data: afterOriginData.value.requestSuccess.xAxis,
       axisLabel: {
         formatter(params) {
-          let date = new Date(params);
-          let m = date.getMonth() + 1;
-          let d = date.getDate();
-          let hh = date.getHours();
-          let mm =
-            date.getMinutes() < 10
-              ? "0" + date.getMinutes()
-              : date.getMinutes();
+          let { y, m, d, hh, mm, ss } = formatterTime(params);
           return hh + ":" + mm + "\n" + m + "-" + d;
         },
       },
@@ -260,14 +244,7 @@ let options = {
       data: afterOriginData.value.servicePayload.xAxis,
       axisLabel: {
         formatter(params) {
-          let date = new Date(params);
-          let m = date.getMonth() + 1;
-          let d = date.getDate();
-          let hh = date.getHours();
-          let mm =
-            date.getMinutes() < 10
-              ? "0" + date.getMinutes()
-              : date.getMinutes();
+          let { y, m, d, hh, mm, ss } = formatterTime(params);
           return hh + ":" + mm + "\n" + m + "-" + d;
         },
       },
@@ -347,9 +324,23 @@ const initEcharsInstance = async () => {
   options["平均响应时延"].xAxis.data = afterOriginData.value.averageDelay.xAxis;
   options["平均响应时延"].series[0].data =
     afterOriginData.value.averageDelay.data;
-  options["请求成功率"].xAxis.data = afterOriginData.value.requestSuccess.xAxis;
-  options["请求成功率"].series[0].data =
-    afterOriginData.value.requestSuccess.data;
+
+  // 无数据处理
+  console.log(
+    "afterOriginData.value.requestSuccess",
+    afterOriginData.value.requestSuccess
+  );
+  if (afterOriginData.value.requestSuccess.xAxis.length) {
+    options["请求成功率"].xAxis.data =
+      afterOriginData.value.requestSuccess.xAxis;
+    options["请求成功率"].series[0].data =
+      afterOriginData.value.requestSuccess.data;
+  } else {
+    options["请求成功率"].xAxis.data = afterOriginData.value.averageDelay.xAxis;
+    options["请求成功率"].yAxis.data = [20, 40, 60, 80, 100];
+    options["请求成功率"].xAxis.type = "category";
+    options["请求成功率"].yAxis.type = "category";
+  }
   options["负载"].xAxis.data = afterOriginData.value.servicePayload.xAxis;
   options["负载"].series[0].data = afterOriginData.value.servicePayload.data;
 
@@ -363,16 +354,25 @@ const initEcharsInstance = async () => {
 
 defineExpose({
   initEcharsInstance,
+  getServiceData
 });
+
+onMounted(() => {
+  // getServiceData()
+})
+
+
 </script>
 <style lang="less" scoped>
 .el-card {
   width: 580px;
   margin: 10px 13px;
+
   :deep(.el-card__header) {
     padding: 10px;
     background-color: #f3f4f9;
   }
+
   :deep(.el-card__body) {
     height: 210px;
     overflow: auto;
@@ -391,6 +391,7 @@ defineExpose({
   height: 50px;
   background-color: #fff;
   padding: 0 15px;
+
   .items {
     margin-right: 30px;
     font-size: 16px;
